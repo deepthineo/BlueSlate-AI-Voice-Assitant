@@ -1,0 +1,242 @@
+import { supabase } from '../config/supabase';
+import { scrapeWebsite, chunkContent } from './scraper.service';
+import { structureWebsiteContent } from './gemini.service';
+import type { KnowledgeBase } from '../types';
+
+// ============================================================
+// LOOP 1: Instant Knowledge Loop
+// Scrape → Structure → Store → Return editable context
+// Target: <30 seconds end-to-end
+// ============================================================
+export async function buildKnowledgeBase(params: {
+  locationId: string;
+  orgId: string;
+  sourceUrl: string;
+  manualContent?: string;
+  manualTitle?: string;
+}): Promise<KnowledgeBase> {
+  const { locationId, orgId, sourceUrl, manualContent, manualTitle } = params;
+
+  // Create KB record in pending state
+  const { data: kb, error: createError } = await supabase
+    .from('knowledge_bases')
+    .insert({
+      location_id: locationId,
+      org_id: orgId,
+      source_url: sourceUrl,
+      status: 'processing',
+    })
+    .select()
+    .single();
+
+  if (createError || !kb) {
+    throw new Error(`Failed to create knowledge base: ${createError?.message}`);
+  }
+
+  try {
+    let rawContent: string;
+    let pagesScraped: number;
+
+    if (manualContent) {
+      // Manual text entry — skip scraping entirely
+      console.log(`[Knowledge] Using manual content for "${manualTitle ?? sourceUrl}"...`);
+      rawContent = `=== MANUAL ENTRY: ${manualTitle ?? 'Knowledge Base'} ===\n${manualContent}`;
+      pagesScraped = 1;
+    } else {
+      // Step 1: Scrape the website
+      console.log(`[Knowledge] Scraping ${sourceUrl}...`);
+      const result = await scrapeWebsite(sourceUrl);
+      rawContent = result.rawContent;
+      pagesScraped = result.pagesScraped;
+
+      if (!rawContent || rawContent.length < 50) {
+        throw new Error(
+          'Could not extract content from this URL. Try a different URL or use the Manual tab to paste content directly.'
+        );
+      }
+    }
+
+    // Step 2: Structure with Gemini
+    console.log('[Knowledge] Structuring with Gemini...');
+    const structuredData = await structureWebsiteContent(rawContent, sourceUrl);
+
+    // Step 3: Store chunks for RAG
+    const chunks = chunkContent(rawContent);
+    if (chunks.length > 0) {
+      const chunkRecords = chunks.map((content, idx) => ({
+        kb_id: kb.id,
+        location_id: locationId,
+        org_id: orgId,
+        content,
+        chunk_index: idx,
+        source_url: sourceUrl,
+      }));
+
+      await supabase.from('knowledge_chunks').insert(chunkRecords);
+    }
+
+    // Step 4: Update KB record as active
+    const { data: updated, error: updateError } = await supabase
+      .from('knowledge_bases')
+      .update({
+        raw_content: rawContent,
+        structured_data: structuredData,
+        status: 'active',
+        pages_scraped: pagesScraped,
+        last_scraped_at: new Date().toISOString(),
+      })
+      .eq('id', kb.id)
+      .select()
+      .single();
+
+    if (updateError || !updated) {
+      throw new Error(`Failed to update knowledge base: ${updateError?.message}`);
+    }
+
+    console.log(`[Knowledge] ✓ KB built: ${pagesScraped} pages, ${chunks.length} chunks`);
+    return updated as KnowledgeBase;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error during knowledge base build';
+
+    await supabase
+      .from('knowledge_bases')
+      .update({ status: 'failed', error_message: message })
+      .eq('id', kb.id);
+
+    throw err;
+  }
+}
+
+// ============================================================
+// Update structured data (owner edits via dashboard)
+// ============================================================
+export async function updateKnowledgeStructuredData(params: {
+  kbId: string;
+  locationId: string;
+  orgId: string;
+  structuredData: Record<string, unknown>;
+}): Promise<KnowledgeBase> {
+  const { kbId, locationId, orgId, structuredData } = params;
+
+  const { data, error } = await supabase
+    .from('knowledge_bases')
+    .update({ structured_data: structuredData })
+    .eq('id', kbId)
+    .eq('location_id', locationId)
+    .eq('org_id', orgId)
+    .select()
+    .single();
+
+  if (error || !data) {
+    throw new Error(`Failed to update knowledge base: ${error?.message}`);
+  }
+
+  return data as KnowledgeBase;
+}
+
+// ============================================================
+// Get active knowledge base for a location
+// ============================================================
+export async function getActiveKnowledgeBase(locationId: string): Promise<KnowledgeBase | null> {
+  const { data, error } = await supabase
+    .from('knowledge_bases')
+    .select('*')
+    .eq('location_id', locationId)
+    .eq('status', 'active')
+    .order('last_scraped_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[Knowledge] Error fetching KB:', error);
+    return null;
+  }
+
+  return data as KnowledgeBase | null;
+}
+
+// ============================================================
+// Build knowledge context string for AI prompt
+// ============================================================
+export function buildKnowledgeContextString(kb: KnowledgeBase): string {
+  if (!kb?.structured_data) return 'No knowledge base available.';
+
+  const d = kb.structured_data;
+  const lines: string[] = [];
+
+  if (d.title) lines.push(`Business: ${d.title}`);
+  if (d.description) lines.push(`About: ${d.description}`);
+  if (d.location_summary) lines.push(`Location: ${d.location_summary}`);
+  if (d.hours) lines.push(`Hours: ${d.hours}`);
+  if (d.address) lines.push(`Address: ${d.address}`);
+  if (d.phone) lines.push(`Phone: ${d.phone}`);
+  if (d.email) lines.push(`Email: ${d.email}`);
+
+  if (d.programs?.length) {
+    lines.push(`Programs: ${d.programs.join(', ')}`);
+  }
+
+  if (d.age_groups?.length) {
+    lines.push(`Age Groups: ${d.age_groups.join(', ')}`);
+  }
+
+  if (d.services?.length) {
+    lines.push('\nServices:');
+    d.services.forEach((s) => {
+      const price = s.price ? ` — ${s.price}` : '';
+      lines.push(`  • ${s.name}${price}: ${s.description}`);
+    });
+  }
+
+  if (d.pricing?.length) {
+    lines.push('\nPricing:');
+    d.pricing.forEach((p) => {
+      lines.push(`  • ${p.tier}: ${p.price}`);
+      if (p.features?.length) {
+        p.features.forEach((f) => lines.push(`    - ${f}`));
+      }
+    });
+  }
+
+  if (d.key_selling_points?.length) {
+    lines.push(`\nKey selling points: ${d.key_selling_points.join('; ')}`);
+  }
+
+  if (d.faq?.length) {
+    lines.push('\nFrequently Asked Questions:');
+    d.faq.slice(0, 5).forEach((f) => {
+      lines.push(`  Q: ${f.question}`);
+      lines.push(`  A: ${f.answer}`);
+    });
+  }
+
+  return lines.join('\n');
+}
+
+// ============================================================
+// List all knowledge bases for a location
+// ============================================================
+export async function listKnowledgeBases(locationId: string, orgId: string) {
+  const { data, error } = await supabase
+    .from('knowledge_bases')
+    .select('id, source_url, status, pages_scraped, last_scraped_at, created_at, structured_data')
+    .eq('location_id', locationId)
+    .eq('org_id', orgId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function getKnowledgeBaseById(id: string, locationId: string, orgId: string): Promise<KnowledgeBase> {
+  const { data, error } = await supabase
+    .from('knowledge_bases')
+    .select('*')
+    .eq('id', id)
+    .eq('location_id', locationId)
+    .eq('org_id', orgId)
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? 'Knowledge base not found');
+  return data as KnowledgeBase;
+}

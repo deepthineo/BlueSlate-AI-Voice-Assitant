@@ -1,0 +1,24 @@
+import http from 'http';
+import app from './app';
+import { env } from './config/env';
+import { attachVoiceWebSocket } from './services/wsVoice.service';
+
+const PORT = parseInt(env.PORT, 10);
+const server = http.createServer(app);
+
+// Browser-based voice (backup / demo mode)
+attachVoiceWebSocket(server);
+
+server.listen(PORT, () => {
+  console.log(`
+╔═══════════════════════════════════════════════════╗
+║   🎮  BLUESLATE API  —  ${env.NODE_ENV.toUpperCase().padEnd(12)}              ║
+║                                                   ║
+║   HTTP  →  http://localhost:${String(PORT).padEnd(5)}                ║
+║   WS    →  ws://localhost:${String(PORT)}/ws/voice           ║
+║                                                   ║
+║   Phone  →  Twilio  ${env.TWILIO_PHONE_NUMBER.padEnd(15)}        ║
+║   AI     →  Gemini Flash (free tier)             ║
+╚═══════════════════════════════════════════════════╝
+`);
+});
