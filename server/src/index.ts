@@ -18,7 +18,7 @@ server.listen(PORT, () => {
 ║   WS    →  ws://localhost:${String(PORT)}/ws/voice           ║
 ║                                                   ║
 ║   Phone  →  Twilio  ${env.TWILIO_PHONE_NUMBER.padEnd(15)}        ║
-║   AI     →  Gemini Flash (free tier)             ║
+║   AI     →  Groq llama-3.3-70b (free tier)       ║
 ╚═══════════════════════════════════════════════════╝
 `);
 });

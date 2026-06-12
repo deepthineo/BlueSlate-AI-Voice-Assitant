@@ -82,7 +82,7 @@ export default function LiveCall() {
   const wsRef = useRef<WebSocket | null>(null);
   const recogRef = useRef<SpeechRecognition | null>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll messages

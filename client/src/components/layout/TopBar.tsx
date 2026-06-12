@@ -1,3 +1,4 @@
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserButton } from '@clerk/clerk-react';
 import { Bell, ArrowLeft } from 'lucide-react';
@@ -7,9 +8,10 @@ interface TopBarProps {
   title: string;
   subtitle?: string;
   back?: boolean;
+  action?: React.ReactNode;
 }
 
-export default function TopBar({ title, subtitle, back }: TopBarProps) {
+export default function TopBar({ title, subtitle, back, action }: TopBarProps) {
   const { currentLocation } = useLocationStore();
   const navigate = useNavigate();
 
@@ -30,7 +32,8 @@ export default function TopBar({ title, subtitle, back }: TopBarProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-3 flex-shrink-0">
+        {action && <div className="flex-shrink-0">{action}</div>}
         {currentLocation?.phone_number && (
           <div className="hidden sm:flex items-center gap-2 bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 py-1.5">
             <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />

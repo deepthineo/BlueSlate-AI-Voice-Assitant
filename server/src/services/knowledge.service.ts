@@ -1,6 +1,6 @@
 import { supabase } from '../config/supabase';
 import { scrapeWebsite, chunkContent } from './scraper.service';
-import { structureWebsiteContent } from './gemini.service';
+import { structureWebsiteContent } from './ai.service';
 import type { KnowledgeBase } from '../types';
 
 // ============================================================
@@ -164,32 +164,37 @@ export function buildKnowledgeContextString(kb: KnowledgeBase): string {
   const d = kb.structured_data;
   const lines: string[] = [];
 
-  if (d.title) lines.push(`Business: ${d.title}`);
-  if (d.description) lines.push(`About: ${d.description}`);
-  if (d.location_summary) lines.push(`Location: ${d.location_summary}`);
-  if (d.hours) lines.push(`Hours: ${d.hours}`);
-  if (d.address) lines.push(`Address: ${d.address}`);
-  if (d.phone) lines.push(`Phone: ${d.phone}`);
-  if (d.email) lines.push(`Email: ${d.email}`);
+  // Core business identity
+  if (d.title) lines.push(`BUSINESS NAME: ${d.title}`);
+  if (d.description) lines.push(`ABOUT: ${d.description}`);
+  if (d.location_summary) lines.push(`LOCATION DETAILS: ${d.location_summary}`);
 
+  // Contact & hours
+  if (d.hours) lines.push(`HOURS: ${d.hours}`);
+  if (d.address) lines.push(`ADDRESS: ${d.address}`);
+  if (d.phone) lines.push(`PHONE: ${d.phone}`);
+  if (d.email) lines.push(`EMAIL: ${d.email}`);
+
+  // Programs & age groups
   if (d.programs?.length) {
-    lines.push(`Programs: ${d.programs.join(', ')}`);
+    lines.push(`\nPROGRAMS OFFERED: ${d.programs.join(', ')}`);
   }
-
   if (d.age_groups?.length) {
-    lines.push(`Age Groups: ${d.age_groups.join(', ')}`);
+    lines.push(`AGE GROUPS SERVED: ${d.age_groups.join(', ')}`);
   }
 
+  // Services with prices
   if (d.services?.length) {
-    lines.push('\nServices:');
+    lines.push('\nSERVICES:');
     d.services.forEach((s) => {
-      const price = s.price ? ` — ${s.price}` : '';
+      const price = s.price ? ` (${s.price})` : '';
       lines.push(`  • ${s.name}${price}: ${s.description}`);
     });
   }
 
+  // Pricing tiers
   if (d.pricing?.length) {
-    lines.push('\nPricing:');
+    lines.push('\nPRICING:');
     d.pricing.forEach((p) => {
       lines.push(`  • ${p.tier}: ${p.price}`);
       if (p.features?.length) {
@@ -198,13 +203,15 @@ export function buildKnowledgeContextString(kb: KnowledgeBase): string {
     });
   }
 
+  // Key value props
   if (d.key_selling_points?.length) {
-    lines.push(`\nKey selling points: ${d.key_selling_points.join('; ')}`);
+    lines.push(`\nKEY SELLING POINTS: ${d.key_selling_points.join(' | ')}`);
   }
 
+  // FAQs — increased to 10 for better coverage
   if (d.faq?.length) {
-    lines.push('\nFrequently Asked Questions:');
-    d.faq.slice(0, 5).forEach((f) => {
+    lines.push('\nFREQUENTLY ASKED QUESTIONS:');
+    d.faq.slice(0, 10).forEach((f) => {
       lines.push(`  Q: ${f.question}`);
       lines.push(`  A: ${f.answer}`);
     });

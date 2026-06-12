@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Globe, RefreshCw, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Edit3, Save, FileText, Trash2 } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Globe, RefreshCw, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Edit3, Save, FileText, Trash2, Upload, ImageIcon, FileUp } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import api from '../lib/api';
 import { useLocationStore } from '../hooks/useLocation';
@@ -23,6 +23,8 @@ export default function Knowledge() {
   const [manualText, setManualText] = useState('');
   const [manualTitle, setManualTitle] = useState('');
   const [savingManual, setSavingManual] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     try {
@@ -74,6 +76,29 @@ export default function Knowledge() {
       setError(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSavingManual(false);
+    }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!fileInputRef.current) return;
+    fileInputRef.current.value = '';
+    if (!file) return;
+
+    setExtracting(true);
+    setError('');
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await api.post('/knowledge/extract', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setManualText(res.data.text ?? '');
+      if (!manualTitle && res.data.title) setManualTitle(res.data.title);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'File extraction failed');
+    } finally {
+      setExtracting(false);
     }
   }
 
@@ -153,19 +178,55 @@ export default function Knowledge() {
             <form onSubmit={handleManualSave} className="space-y-3">
               <input
                 className="input"
-                placeholder="Knowledge base title (e.g. XP League Frisco)"
+                placeholder="Knowledge base title (e.g. My Franchise)"
                 value={manualTitle}
                 onChange={(e) => setManualTitle(e.target.value)}
                 required
               />
+
+              {/* Upload PDF or Image */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg,.webp"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+              <div
+                onClick={() => !extracting && fileInputRef.current?.click()}
+                className="flex items-center justify-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all hover:border-brand-500/50 hover:bg-brand-500/5"
+                style={{ border: '1px dashed rgba(124,58,237,0.35)', background: 'rgba(124,58,237,0.04)' }}
+              >
+                {extracting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 text-purple-400 animate-spin" />
+                    <span className="text-sm text-purple-300">Extracting text from file…</span>
+                  </>
+                ) : (
+                  <>
+                    <FileUp className="w-4 h-4 text-purple-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-300">Upload PDF or Image</p>
+                      <p className="text-xs text-gray-600">PDF, PNG, JPG, WEBP — max 10 MB · AI extracts all text automatically</p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.07)' }} />
+                <span>or type / paste below</span>
+                <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.07)' }} />
+              </div>
+
               <textarea
                 className="input h-40 resize-none font-mono text-xs"
-                placeholder={`Paste your business info here. Example:\n\nBusiness: XP League Frisco\nDescription: Premier youth esports training for ages 8-18\nPrograms: Fortnite Squad, Valorant Academy, Minecraft Builders\nPricing: $149/month (2 sessions/week), $229/month (unlimited)\nHours: Mon-Fri 3pm-8pm, Sat 10am-6pm\nAddress: 123 Main St, Frisco TX 75034\nPhone: (469) 555-1234\nFAQ:\n- Q: What ages do you serve? A: Ages 8-18\n- Q: Do you offer trials? A: Yes, free 1-session trial`}
+                placeholder={`Paste your business info here. Example:\n\nBusiness: Your Franchise Name\nDescription: What your business does\nServices: Service 1, Service 2\nPricing: $XX/month\nHours: Mon-Fri 9am-6pm\nAddress: 123 Main St, City TX 75000\nPhone: (555) 123-4567\nFAQ:\n- Q: Do you offer free trials? A: Yes!`}
                 value={manualText}
                 onChange={(e) => setManualText(e.target.value)}
                 required
               />
-              <button type="submit" className="btn-primary w-full" disabled={savingManual}>
+              <button type="submit" className="btn-primary w-full" disabled={savingManual || extracting}>
                 {savingManual
                   ? <><RefreshCw className="w-4 h-4 animate-spin" /> Processing with AI…</>
                   : <><Save className="w-4 h-4" /> Save as Knowledge Base</>}

@@ -1,51 +1,21 @@
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import { env } from '../config/env';
 import type { LeadExtraction, KnowledgeStructuredData } from '../types';
 
-const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+const groq = new Groq({ apiKey: env.GROQ_API_KEY });
 
-// Models in preference order — first one that works will be used
-const CANDIDATE_MODELS = [
-  'gemini-2.5-flash',       // Current free working model (confirmed)
-  'gemini-1.5-flash',       // AI Studio classic free key
-  'gemini-2.0-flash-lite',  // Fallback lite
-  'gemini-2.0-flash',       // Fallback
-];
+// 70B model used for ALL tasks — accurate enough for context retrieval, still free on Groq
+const SMART_MODEL = 'llama-3.3-70b-versatile';
 
-let _resolvedModel: string | null = null;
+type Msg = { role: 'system' | 'user' | 'assistant'; content: string };
 
-async function resolveModel(): Promise<string> {
-  if (_resolvedModel) return _resolvedModel;
-
-  // Try each candidate with a minimal call
-  for (const name of CANDIDATE_MODELS) {
-    try {
-      const m = genAI.getGenerativeModel({ model: name });
-      await m.generateContent('hi');
-      _resolvedModel = name;
-      console.log(`[Gemini] Using model: ${name}`);
-      return name;
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '';
-      if (msg.includes('404') || (msg.includes('429') && msg.includes('limit: 0'))) {
-        console.warn(`[Gemini] Model ${name} not available, trying next...`);
-        continue;
-      }
-      // 429 rate limit (but model exists) — use this model
-      _resolvedModel = name;
-      console.log(`[Gemini] Using model: ${name} (rate limited, will retry)`);
-      return name;
-    }
-  }
-
-  throw new Error(
-    'No working Gemini model found. Get a free API key at https://aistudio.google.com/apikey ' +
-    'and update GEMINI_API_KEY in server/.env'
-  );
-}
-
-function getModel(modelName?: string): GenerativeModel {
-  return genAI.getGenerativeModel({ model: modelName ?? (_resolvedModel ?? 'gemini-1.5-flash') });
+function convertHistory(
+  history: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>
+): Msg[] {
+  return history.map((h) => ({
+    role: h.role === 'model' ? 'assistant' : 'user',
+    content: h.parts.map((p) => p.text).join(''),
+  }));
 }
 
 // ============================================================
@@ -59,39 +29,42 @@ export async function generateVoiceResponse(params: {
 }): Promise<string> {
   const { userMessage, conversationHistory, systemPrompt, knowledgeContext } = params;
 
-  const model = getModel();
-
   const fullSystemPrompt = `${systemPrompt}
 
-KNOWLEDGE BASE (what you know about this business):
+════════════════════════════════════════════════════
+KNOWLEDGE BASE — YOUR ONLY SOURCE OF TRUTH
+Answer ALL factual questions by reading this first:
+════════════════════════════════════════════════════
 ${knowledgeContext}
+════════════════════════════════════════════════════
 
-CRITICAL RULES:
-- Keep responses SHORT — under 30 words unless detail is explicitly requested
-- Speak naturally, like a real receptionist on the phone
-- If asked about pricing/details not in your knowledge base, say: "Great question! Let me have our team follow up with you on that exact detail."
-- Always try to get the caller's name early in the conversation
-- At every natural opportunity, offer to book a trial session or schedule a callback
-- NEVER make up information not in your knowledge base`;
+HOW TO ANSWER QUESTIONS:
+- For questions about services, pricing, programs, hours, location, age groups → find the answer above and state it DIRECTLY and ACCURATELY. Do not paraphrase or guess.
+- If the exact answer IS in the knowledge base → give it clearly and correctly.
+- If the answer is NOT in the knowledge base → say: "Great question — I want to make sure you get the right details, so let me have our team follow up. Can I grab your name and number?"
+- NEVER invent or assume services, prices, or details that are not listed above.
+- NEVER say something is available if you don't see it in the knowledge base.
 
-  const modelName = await resolveModel();
-  const modelWithSystem = genAI.getGenerativeModel({
-    model: modelName,
-    systemInstruction: fullSystemPrompt,
+VOICE STYLE:
+- Keep responses to 1-3 sentences — this is a phone call, be concise but complete
+- Sound warm and natural, use contractions: "I'm", "we've", "that's", "you'll"
+- After answering, ask ONE brief follow-up question to continue the conversation
+- Goal: understand their need, then guide toward booking a free trial or getting their contact info`;
+
+  const messages: Msg[] = [
+    { role: 'system', content: fullSystemPrompt },
+    ...convertHistory(conversationHistory),
+    { role: 'user', content: userMessage },
+  ];
+
+  const completion = await groq.chat.completions.create({
+    model: SMART_MODEL,
+    messages,
+    max_tokens: 200,
+    temperature: 0.3,
   });
 
-  // Gemini requires history to start with 'user' — strip any leading 'model' turns
-  const safeHistory = (() => {
-    const idx = conversationHistory.findIndex(h => h.role === 'user');
-    return idx === -1 ? [] : conversationHistory.slice(idx);
-  })();
-
-  const chat = modelWithSystem.startChat({
-    history: safeHistory,
-  });
-
-  const result = await chat.sendMessage(userMessage);
-  return result.response.text().trim();
+  return completion.choices[0].message.content?.trim() ?? "Sure, let me help you with that!";
 }
 
 // ============================================================
@@ -102,8 +75,6 @@ export async function extractLeadFromTranscript(params: {
   fromPhone: string;
 }): Promise<LeadExtraction> {
   const { transcript, fromPhone } = params;
-
-  const model = getModel(await resolveModel());
 
   const prompt = `You are extracting structured lead data from a phone call transcript for a franchise business.
 
@@ -130,10 +101,14 @@ Extract the following information and return ONLY valid JSON (no markdown, no ex
 
 If information is not in the transcript, use null. Return ONLY the JSON object.`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text().trim();
+  const completion = await groq.chat.completions.create({
+    model: SMART_MODEL,
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 600,
+    temperature: 0.1,
+  });
 
-  // Strip markdown code blocks if present
+  const text = completion.choices[0].message.content?.trim() ?? '';
   const jsonText = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
 
   try {
@@ -156,8 +131,6 @@ If information is not in the transcript, use null. Return ONLY the JSON object.`
 // KNOWLEDGE EXTRACTION — Structure scraped website content
 // ============================================================
 export async function structureWebsiteContent(rawContent: string, sourceUrl: string): Promise<KnowledgeStructuredData> {
-  const model = getModel(await resolveModel());
-
   const prompt = `You are extracting structured business information from a franchise website's scraped content.
 
 SOURCE URL: ${sourceUrl}
@@ -184,8 +157,14 @@ Extract all relevant business information and return ONLY valid JSON (no markdow
 
 If information is not found in the content, omit the field or use null. Return ONLY the JSON.`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text().trim();
+  const completion = await groq.chat.completions.create({
+    model: SMART_MODEL,
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 1200,
+    temperature: 0.1,
+  });
+
+  const text = completion.choices[0].message.content?.trim() ?? '';
   const jsonText = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
 
   try {
@@ -203,8 +182,6 @@ If information is not found in the content, omit the field or use null. Return O
 // CALL SUMMARY — Generate 1-sentence call summary
 // ============================================================
 export async function summarizeCall(transcript: string): Promise<{ summary: string; sentimentScore: number }> {
-  const model = getModel(await resolveModel());
-
   const prompt = `Analyze this phone call transcript and return ONLY valid JSON:
 {
   "summary": "one sentence describing what happened in this call and its outcome",
@@ -218,8 +195,14 @@ ${transcript}
 
 Return ONLY the JSON object.`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text().trim();
+  const completion = await groq.chat.completions.create({
+    model: SMART_MODEL,
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 150,
+    temperature: 0.1,
+  });
+
+  const text = completion.choices[0].message.content?.trim() ?? '';
   const jsonText = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
 
   try {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, ChevronRight, Phone, TrendingUp, Filter } from 'lucide-react';
+import { TrendingUp, Phone, PhoneCall, Loader2, X, CheckCircle, AlertCircle } from 'lucide-react';
 import TopBar from '../components/layout/TopBar';
 import api from '../lib/api';
 import { useLocationStore } from '../hooks/useLocation';
@@ -8,6 +8,172 @@ import type { Lead, LeadStats } from '../types';
 
 const STATUS_OPTIONS = ['all', 'new', 'contacted', 'qualified', 'booked', 'converted', 'dead'];
 
+// ── Outbound call modal ─────────────────────────────────────────
+function OutboundCallModal({
+  lead,
+  locationId,
+  onClose,
+  onCallStarted,
+}: {
+  lead: Lead;
+  locationId: string;
+  onClose: () => void;
+  onCallStarted: () => void;
+}) {
+  const [status, setStatus] = useState<'idle' | 'calling' | 'ringing' | 'done' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  async function startCall() {
+    setStatus('calling');
+    try {
+      await api.post('/voice/outbound', {
+        toPhone: lead.phone,
+        locationId,
+        leadId: lead.id,
+        context: lead.core_interest ? `Lead is interested in: ${lead.core_interest}` : '',
+      });
+      setStatus('ringing');
+      setTimeout(() => {
+        setStatus('done');
+        onCallStarted();
+      }, 3000);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to start call');
+      setStatus('error');
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+      <div
+        className="w-full max-w-md rounded-3xl p-7 relative"
+        style={{ background: '#0e0e16', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:text-white hover:bg-white/10 transition-all"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        {status === 'idle' && (
+          <>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.25)' }}>
+                <PhoneCall className="w-6 h-6 text-purple-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white">Call this lead</h3>
+                <p className="text-sm text-gray-500">AI agent will call on your behalf</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <div className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <p className="text-xs text-gray-500 mb-3">Call details</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Calling</span>
+                    <span className="text-gray-200 font-medium">{lead.name ?? 'Unknown Caller'}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Phone</span>
+                    <span className="text-gray-200 font-mono">{lead.phone ?? 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Interest</span>
+                    <span className="text-gray-200">{lead.core_interest ?? '—'}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Prior outcome</span>
+                    <span className="text-gray-200 capitalize">{lead.call_outcome ?? '—'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl text-xs text-gray-400" style={{ background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.15)' }}>
+                Your AI agent will call this lead, mention their prior inquiry, and try to book a free trial or gather contact info.
+              </div>
+            </div>
+
+            {!lead.phone ? (
+              <div className="flex items-center gap-2 p-3 rounded-xl text-sm" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                <span className="text-red-300">No phone number on file for this lead</span>
+              </div>
+            ) : (
+              <button
+                onClick={startCall}
+                className="w-full py-3.5 rounded-2xl font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)', boxShadow: '0 0 20px rgba(124,58,237,0.3)' }}
+              >
+                <Phone className="w-4 h-4" /> Start AI Call
+              </button>
+            )}
+          </>
+        )}
+
+        {status === 'calling' && (
+          <div className="text-center py-6">
+            <Loader2 className="w-10 h-10 text-purple-400 animate-spin mx-auto mb-4" />
+            <p className="font-semibold text-white mb-1">Initiating call…</p>
+            <p className="text-sm text-gray-500">Connecting to Twilio…</p>
+          </div>
+        )}
+
+        {status === 'ringing' && (
+          <div className="text-center py-6">
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <div className="absolute inset-0 rounded-full animate-ping" style={{ background: 'rgba(124,58,237,0.3)' }} />
+              <div className="relative w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.4)' }}>
+                <Phone className="w-7 h-7 text-purple-400" />
+              </div>
+            </div>
+            <p className="font-semibold text-white mb-1">Calling {lead.name ?? lead.phone}…</p>
+            <p className="text-sm text-gray-500">AI agent dialing — ringing now</p>
+          </div>
+        )}
+
+        {status === 'done' && (
+          <div className="text-center py-6">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)' }}>
+              <CheckCircle className="w-8 h-8 text-emerald-400" />
+            </div>
+            <p className="font-bold text-white mb-2">Call initiated!</p>
+            <p className="text-sm text-gray-400 mb-5">Your AI agent is calling {lead.name ?? lead.phone}. The call and any new lead data will appear in Call History.</p>
+            <button onClick={onClose} className="w-full py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white transition-colors"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              Close
+            </button>
+          </div>
+        )}
+
+        {status === 'error' && (
+          <div className="text-center py-6">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <AlertCircle className="w-8 h-8 text-red-400" />
+            </div>
+            <p className="font-bold text-white mb-2">Call failed</p>
+            <p className="text-sm text-gray-400 mb-5">{errorMsg}</p>
+            <div className="flex gap-2">
+              <button onClick={() => setStatus('idle')} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-300"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                Try again
+              </button>
+              <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:text-white transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main Leads page ─────────────────────────────────────────────
 export default function Leads() {
   const { currentLocation } = useLocationStore();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -16,6 +182,7 @@ export default function Leads() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [callModalLead, setCallModalLead] = useState<Lead | null>(null);
 
   async function load() {
     try {
@@ -51,6 +218,19 @@ export default function Leads() {
   return (
     <div className="flex flex-col h-full">
       <TopBar title="Leads" subtitle="Auto-extracted from every call — scored and ready to action" />
+
+      {/* Outbound call modal */}
+      {callModalLead && currentLocation && (
+        <OutboundCallModal
+          lead={callModalLead}
+          locationId={currentLocation.id}
+          onClose={() => setCallModalLead(null)}
+          onCallStarted={() => {
+            // Mark as contacted
+            updateStatus(callModalLead, 'contacted');
+          }}
+        />
+      )}
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left panel: list */}
@@ -130,16 +310,29 @@ export default function Leads() {
         {/* Right panel: detail */}
         {selectedLead && (
           <div className="flex-1 overflow-y-auto p-6">
-            <div className="max-w-2xl space-y-6">
-              {/* Lead header */}
-              <div className="flex items-start justify-between">
+            <div className="max-w-2xl space-y-5">
+              {/* Lead header + action buttons */}
+              <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-xl font-bold text-white">{selectedLead.name ?? 'Unknown Caller'}</h2>
                   <p className="text-sm text-gray-400 font-mono mt-0.5">{selectedLead.phone ?? '—'}</p>
                 </div>
-                <span className={`badge text-base px-3 py-1 ${scoreBg(selectedLead.score)}`}>
-                  Score: {selectedLead.score}
-                </span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`badge text-base px-3 py-1 ${scoreBg(selectedLead.score)}`}>
+                    {selectedLead.score}
+                  </span>
+                  {/* Call Lead button */}
+                  <button
+                    onClick={() => setCallModalLead(selectedLead)}
+                    disabled={!selectedLead.phone}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)' }}
+                    title={selectedLead.phone ? 'Call this lead with AI agent' : 'No phone number on file'}
+                  >
+                    <PhoneCall className="w-3.5 h-3.5" />
+                    Call
+                  </button>
+                </div>
               </div>
 
               {/* Quick stats */}
@@ -151,7 +344,7 @@ export default function Leads() {
                 ].map((item) => (
                   <div key={item.label} className="card">
                     <p className="text-xs text-gray-500">{item.label}</p>
-                    <p className="text-sm font-medium text-gray-200 mt-0.5 truncate">{item.value}</p>
+                    <p className="text-sm font-medium text-gray-200 mt-0.5 truncate capitalize">{item.value}</p>
                   </div>
                 ))}
               </div>
@@ -225,7 +418,16 @@ export default function Leads() {
               {/* Next action */}
               {selectedLead.notes && (
                 <div className="card border-brand-600/30">
-                  <p className="text-xs text-brand-400 mb-1">Recommended Next Action</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs text-brand-400 font-semibold">Recommended Next Action</span>
+                    <button
+                      onClick={() => setCallModalLead(selectedLead)}
+                      disabled={!selectedLead.phone}
+                      className="ml-auto flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-40"
+                    >
+                      <Phone className="w-3 h-3" /> Call now
+                    </button>
+                  </div>
                   <p className="text-sm text-gray-300">{selectedLead.notes}</p>
                 </div>
               )}

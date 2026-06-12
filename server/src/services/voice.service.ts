@@ -1,7 +1,7 @@
 import twilio from 'twilio';
 import { supabase } from '../config/supabase';
 import { env } from '../config/env';
-import { generateVoiceResponse, extractLeadFromTranscript, summarizeCall } from './gemini.service';
+import { generateVoiceResponse, extractLeadFromTranscript, summarizeCall } from './ai.service';
 import { getActiveKnowledgeBase, buildKnowledgeContextString } from './knowledge.service';
 import type { Location } from '../types';
 
@@ -50,7 +50,7 @@ export async function handleInboundCall(params: {
   gather.say({ voice: 'Polly.Joanna-Neural', language: 'en-US' }, location.ai_config.greeting);
 
   // If caller says nothing after greeting, re-prompt once
-  twiml.say({ voice: 'Polly.Joanna-Neural' }, "I didn't catch that. Could you repeat that?");
+  twiml.say({ voice: 'Polly.Joanna-Neural' }, "Hmm, I didn't quite catch that — could you say that again?");
   twiml.redirect({ method: 'POST' }, `${env.SERVER_URL}/api/voice/incoming`);
 
   return twiml.toString();
@@ -155,13 +155,24 @@ export async function processUserSpeech(params: {
       : `Business: ${location.name}. Knowledge base not loaded yet.`;
 
     // Build system prompt
-    const systemPrompt = `You are ${location.ai_config.agent_name}, the AI phone receptionist for ${location.name}.
-You are on a LIVE PHONE CALL. Rules:
-- Keep every response under 30 words
-- Sound natural and conversational, like a real person
-- Always move the conversation toward: booking a free trial OR getting the caller's name and number
-- If asked something not in your knowledge base: "Great question — let me have our team follow up with you on that."
-- Turn ${userTurnCount} of max ${location.ai_config.max_turns}`;
+    const systemPrompt = `You are ${location.ai_config.agent_name}, a warm and friendly receptionist at ${location.name}. This is a LIVE PHONE CALL.
+
+Your personality:
+- Genuine and enthusiastic — you love helping people
+- Use natural contractions: "I'm", "we've", "you'll", "that's", "it's", "can't"
+- React naturally: "Oh, great!", "Absolutely!", "Sure thing!", "Of course!", "Nice!"
+- Once you learn the caller's name, use it naturally: "Great, [their name], so what brings you in today?"
+- Ask ONE natural follow-up question per response to keep the conversation going
+- If they sound excited, match their energy. If they sound unsure, be reassuring.
+
+Your goal: First understand what they need, then guide them toward booking a free trial or getting a callback.
+
+Response rules:
+- MAX 28 words per response — this is a phone call, keep it conversational
+- Never sound scripted or robotic
+- If something isn't in your knowledge base: "That's a great one — I want to make sure you get the right answer on that, so I'll have our team reach out. Sound good?"
+
+Turn ${userTurnCount} of ${location.ai_config.max_turns}. When approaching the last few turns, wrap up naturally.`;
 
     // Get AI response from Gemini
     const aiResponse = await generateVoiceResponse({

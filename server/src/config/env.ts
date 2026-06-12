@@ -21,8 +21,14 @@ const envSchema = z.object({
   TWILIO_AUTH_TOKEN: z.string().min(1, 'TWILIO_AUTH_TOKEN required'),
   TWILIO_PHONE_NUMBER: z.string().min(1, 'TWILIO_PHONE_NUMBER required'),
 
-  // Gemini — free at aistudio.google.com
-  GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY required'),
+  // Groq — free at console.groq.com (14,400 req/day free tier)
+  GROQ_API_KEY: z.string().min(1, 'GROQ_API_KEY required'),
+
+  // Anthropic — Claude Opus voice AI (console.anthropic.com — new accounts get $5 free credits)
+  ANTHROPIC_API_KEY: z.string().optional(),
+
+  // ElevenLabs — optional, free at elevenlabs.io (human voice for demo widget)
+  ELEVENLABS_API_KEY: z.string().optional(),
 
   // App URLs
   SERVER_URL: z.string().url().default('http://localhost:3001'),

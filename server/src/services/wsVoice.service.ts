@@ -5,7 +5,7 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { IncomingMessage, Server } from 'http';
 import { supabase } from '../config/supabase';
-import { generateVoiceResponse, extractLeadFromTranscript, summarizeCall } from './gemini.service';
+import { generateVoiceResponse, extractLeadFromTranscript, summarizeCall } from './ai.service';
 import { getActiveKnowledgeBase, buildKnowledgeContextString } from './knowledge.service';
 import type { Location } from '../types';
 
