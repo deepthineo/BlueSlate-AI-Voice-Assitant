@@ -70,6 +70,31 @@ export interface KnowledgeStructuredData {
   key_selling_points?: string[];
 }
 
+// ── Public "Try BlueSlate" website scan (no-signup landing experience) ──
+export interface SampleConversation {
+  scenario: string;           // e.g. "New parent asking about pricing"
+  direction: 'inbound' | 'outbound';
+  turns: Array<{ speaker: 'caller' | 'ai'; text: string }>;
+}
+
+export interface BusinessScan {
+  business_name: string;
+  summary: string;            // 2-3 sentence business summary
+  services: string[];
+  programs: string[];
+  pricing_insights: string[]; // human-readable pricing observations
+  faqs: Array<{ question: string; answer: string }>;
+  customer_personas: string[];
+  qualifying_questions: string[];   // recommended lead-qualification questions
+  knowledge_gaps: string[];         // questions the website cannot answer
+  sample_conversations: SampleConversation[];
+  // Compact KB used to ground the live playground without persisting a tenant KB
+  knowledge_context: string;
+  source_url: string;
+  pages_scraped: number;
+  model: 'gemini' | 'fallback';
+}
+
 export interface Call {
   id: string;
   location_id: string;

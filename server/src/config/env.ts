@@ -21,8 +21,12 @@ const envSchema = z.object({
   TWILIO_AUTH_TOKEN: z.string().min(1, 'TWILIO_AUTH_TOKEN required'),
   TWILIO_PHONE_NUMBER: z.string().min(1, 'TWILIO_PHONE_NUMBER required'),
 
-  // Groq — free at console.groq.com (14,400 req/day free tier)
+  // Groq — free at console.groq.com (14,400 req/day free tier). Used for real-time voice (low latency).
   GROQ_API_KEY: z.string().min(1, 'GROQ_API_KEY required'),
+
+  // Gemini — free at aistudio.google.com. Used for async analysis (website scan, FAQs, sample
+  // conversations, knowledge-gap detection). Optional: the analysis layer degrades gracefully if absent.
+  GEMINI_API_KEY: z.string().optional(),
 
   // Anthropic — Claude Opus voice AI (console.anthropic.com — new accounts get $5 free credits)
   ANTHROPIC_API_KEY: z.string().optional(),

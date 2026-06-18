@@ -5,6 +5,7 @@ import {
   CheckCircle, ArrowRight, Building2, Mic, X,
   BarChart3, PhoneCall, Sparkles, Play, PhoneOff,
 } from 'lucide-react';
+import TryBlueSlate from '../components/TryBlueSlate';
 
 // Fallback replies if the API is unreachable
 function getFallbackReply(turnCount: number): string {
@@ -668,14 +669,11 @@ export default function Landing() {
                   Start Free Trial <ArrowRight className="w-4 h-4" />
                 </Link>
                 <button
-                  onClick={() => {
-                    document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
-                    setTimeout(() => setDemoAutoStart(true), 600);
-                  }}
+                  onClick={() => document.getElementById('try')?.scrollIntoView({ behavior: 'smooth' })}
                   className="flex items-center gap-2 px-6 py-3.5 rounded-2xl font-semibold text-base transition-all hover:bg-white/10"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}
                 >
-                  <Play className="w-4 h-4 text-purple-400" /> Try a Demo
+                  <Play className="w-4 h-4 text-purple-400" /> Try on My Website
                 </button>
               </div>
 
@@ -718,6 +716,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* ── Try BlueSlate: no-signup website scan + AI playground ── */}
+      <TryBlueSlate />
 
       {/* ── How It Works ───────────────────────────────────────── */}
       <section id="how-it-works" className="py-20 px-6">

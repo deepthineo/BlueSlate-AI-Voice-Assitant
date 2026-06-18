@@ -11,3 +11,6 @@ dist/
 *.njsproj
 *.sln
 *.sw?
+
+# Local project documentation / reports (not committed)
+/*.md

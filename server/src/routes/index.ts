@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import axios from 'axios';
 import Groq from 'groq-sdk';
+import rateLimit from 'express-rate-limit';
 import { env } from '../config/env';
+import { scrapeWebsite } from '../services/scraper.service';
+import { analyzeBusinessWebsite } from '../services/gemini.service';
 import voiceRoutes from './voice.routes';
 import knowledgeRoutes from './knowledge.routes';
 import leadsRoutes from './leads.routes';
@@ -87,6 +90,106 @@ router.post('/demo/chat', async (req, res) => {
     res.json({ reply });
   } catch (err) {
     console.error('[Demo Chat] Groq error:', err);
+    res.status(500).json({ error: 'AI temporarily unavailable' });
+  }
+});
+
+// ── Try BlueSlate: public website scan (no auth) ──────────────────
+// Visitor pastes their URL → we scrape → Gemini analyzes → instant preview.
+// Rate-limited because it triggers an outbound fetch + LLM spend per call.
+const scanLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 min
+  max: 8,                   // 8 scans per IP per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many scans — please wait a few minutes and try again.' },
+});
+
+function normalizeUrl(input: string): string | null {
+  let url = input.trim();
+  if (!url) return null;
+  if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    // Block obvious internal/loopback targets (SSRF guard)
+    const host = parsed.hostname.toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host.endsWith('.local')) return null;
+    if (/^(10|192\.168|172\.(1[6-9]|2[0-9]|3[0-1]))\./.test(host)) return null;
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
+router.post('/demo/scan', scanLimiter, async (req, res) => {
+  const { url } = req.body as { url?: string };
+  const normalized = url ? normalizeUrl(url) : null;
+  if (!normalized) {
+    res.status(400).json({ error: 'A valid website URL is required (e.g. xpleaguefrisco.com).' });
+    return;
+  }
+
+  try {
+    const { rawContent, pagesScraped } = await scrapeWebsite(normalized);
+    if (!rawContent || rawContent.length < 80) {
+      res.status(422).json({ error: "We couldn't read enough from that site. Try the homepage URL or a different page." });
+      return;
+    }
+    const scan = await analyzeBusinessWebsite({ rawContent, sourceUrl: normalized, pagesScraped });
+    res.json(scan);
+  } catch (err) {
+    console.error('[Demo Scan] error:', err instanceof Error ? err.message : err);
+    res.status(502).json({ error: "We couldn't analyze that site right now. Please try again in a moment." });
+  }
+});
+
+// ── Try BlueSlate: playground chat grounded in the scanned business ──
+// Reuses Groq (fast) but injects the scanned knowledge_context as ground truth.
+router.post('/demo/playground-chat', async (req, res) => {
+  const { message, history, businessName, knowledgeContext } = req.body as {
+    message?: string;
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+    businessName?: string;
+    knowledgeContext?: string;
+  };
+
+  if (!message || typeof message !== 'string' || message.length > 500) {
+    res.status(400).json({ error: 'message required, max 500 chars' });
+    return;
+  }
+
+  const name = (businessName || 'this business').slice(0, 120);
+  const kb = (knowledgeContext || '').slice(0, 8000);
+
+  const system = `You are the AI phone receptionist for "${name}", demonstrating BlueSlate live to the business owner.
+
+KNOWLEDGE BASE — YOUR ONLY SOURCE OF TRUTH:
+${kb || '(No knowledge base was captured. Be helpful but offer to take the caller\'s details for follow-up.)'}
+
+RULES:
+- Answer ONLY from the knowledge base above. If the answer isn't there, say you'll have the team follow up and offer to take their name and number.
+- Keep replies to 1-3 sentences — this is a phone call. Warm, natural, use contractions.
+- After answering, ask one brief follow-up to move toward booking or capturing contact info.
+- Never invent prices or facts not in the knowledge base.`;
+
+  try {
+    const safeHistory = (history ?? [])
+      .slice(-8)
+      .filter((h) => h.role === 'user' || h.role === 'assistant');
+
+    const completion = await groqDemo.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'system', content: system }, ...safeHistory, { role: 'user', content: message }],
+      max_tokens: 160,
+      temperature: 0.4,
+    });
+
+    const reply = completion.choices[0].message.content?.trim()
+      ?? "Great question — let me have our team follow up with the details. Can I grab your name and number?";
+    res.json({ reply });
+  } catch (err) {
+    console.error('[Playground Chat] Groq error:', err);
     res.status(500).json({ error: 'AI temporarily unavailable' });
   }
 });
