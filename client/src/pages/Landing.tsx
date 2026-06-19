@@ -6,6 +6,9 @@ import {
   BarChart3, PhoneCall, Sparkles, Play, PhoneOff,
 } from 'lucide-react';
 import TryBlueSlate from '../components/TryBlueSlate';
+import VapiCallButton from '../components/VapiCallButton';
+import CallReceptionist from '../components/CallReceptionist';
+import { VAPI_PHONE, VAPI_PHONE_HREF, isVapiConfigured } from '../lib/vapi';
 
 // Fallback replies if the API is unreachable
 function getFallbackReply(turnCount: number): string {
@@ -19,8 +22,6 @@ const DEMO_GREETING = "Hi there! Thanks for calling — I'm Alex, your AI recept
 // Use `|| '/api'` (not `??`): VITE_API_URL is "" in dev, which `??` won't catch.
 // "/api" is proxied by Vite to localhost:3001; in prod it's the full Render URL.
 const API_BASE = ((import.meta.env.VITE_API_URL as string | undefined)?.trim() || '/api');
-// Real Twilio line visitors can dial to reach the live AI. Override in Vercel via VITE_DEMO_PHONE.
-const DEMO_PHONE = (import.meta.env.VITE_DEMO_PHONE as string | undefined) ?? '+1 570 747 4386';
 
 function DemoCallWidget({ autoStart }: { autoStart?: boolean }) {
   const [phase, setPhase] = useState<'idle' | 'ringing' | 'active' | 'ended'>('idle');
@@ -548,12 +549,11 @@ function CallMeTab() {
 // ── 3-tab live demo: Browser / Call us / We call you ────────────
 function DemoTabs({ autoStart }: { autoStart?: boolean }) {
   const [tab, setTab] = useState<'browser' | 'call' | 'callme'>('browser');
-  const dialHref = `tel:${DEMO_PHONE.replace(/[^\d+]/g, '')}`;
 
   const tabs = [
     { key: 'browser' as const, label: 'Browser', sub: 'Mic + text' },
-    { key: 'call' as const, label: 'Call Alex', sub: 'Live · free' },
-    { key: 'callme' as const, label: 'Alex calls you', sub: 'We dial you' },
+    { key: 'call' as const, label: 'Call AI', sub: VAPI_PHONE.replace('+1 ', '') },
+    { key: 'callme' as const, label: 'AI calls you', sub: 'We dial you' },
   ];
 
   return (
@@ -598,18 +598,28 @@ function DemoTabs({ autoStart }: { autoStart?: boolean }) {
         )}
 
         {tab === 'call' && (
-          <div className="flex flex-col items-center gap-3 py-2 text-center w-full">
-            <p className="text-xs text-gray-500 max-w-[17rem]">
-              Talk to Alex live, right here — free, no app, works on any phone or computer. Tap the mic and ask anything.
-            </p>
-            {/* Browser-based live call: works for everyone, no Twilio, no signup */}
-            <DemoCallWidget autoStart />
-            <details className="w-full max-w-[17rem] mt-1">
-              <summary className="text-[10px] text-gray-600 cursor-pointer hover:text-gray-400">Prefer a real phone call?</summary>
-              <p className="text-[10px] text-gray-600 mt-1.5">
-                Our dialable line <a href={dialHref} className="text-purple-400 hover:text-purple-300">{DEMO_PHONE}</a> is in pilot and currently answers verified numbers only. The live call above works for everyone right now.
-              </p>
-            </details>
+          <div className="flex flex-col items-center gap-4 py-3 text-center w-full">
+            {isVapiConfigured ? (
+              <>
+                <p className="text-xs text-gray-500 max-w-[17rem]">
+                  Talk to our AI receptionist live — same assistant that answers the phone. Free, works on any device.
+                </p>
+                {/* In-browser call to the SAME Vapi assistant as the phone number */}
+                <VapiCallButton />
+                <div className="flex items-center gap-3 w-full max-w-[16rem] mt-1">
+                  <div className="h-px flex-1 bg-white/10" />
+                  <span className="text-[10px] text-gray-600">OR CALL</span>
+                  <div className="h-px flex-1 bg-white/10" />
+                </div>
+                <CallReceptionist />
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-3 py-4">
+                <p className="text-white font-bold text-sm">Call our AI receptionist</p>
+                <a href={VAPI_PHONE_HREF} className="text-purple-300 font-bold text-xl tabular-nums hover:text-purple-200">{VAPI_PHONE}</a>
+                <p className="text-xs text-gray-500 max-w-[16rem]">Tap to dial and ask Alex anything — 24/7.</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -833,6 +843,15 @@ export default function Landing() {
                 >
                   <Play className="w-4 h-4 text-purple-400" /> Try on My Website
                 </button>
+              </div>
+
+              {/* Talk to AI live + click-to-call the receptionist number */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start mb-8">
+                <VapiCallButton variant="pill" />
+                <span className="text-sm text-gray-500 flex items-center gap-1.5">
+                  or call our AI live —{' '}
+                  <a href={VAPI_PHONE_HREF} className="text-purple-300 font-semibold hover:text-purple-200 tabular-nums">{VAPI_PHONE}</a>
+                </span>
               </div>
 
               {/* Trust row */}
