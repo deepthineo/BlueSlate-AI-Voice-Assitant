@@ -482,7 +482,6 @@ function DemoCallWidget({ autoStart }: { autoStart?: boolean }) {
 // ── "Alex calls you" tab — no signup, just leave a number ───────
 function CallMeTab() {
   const [phone, setPhone] = useState('');
-  const [name, setName] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const [errMsg, setErrMsg] = useState('');
 
@@ -496,7 +495,7 @@ function CallMeTab() {
       const res = await fetch(`${API_BASE}/demo/callback-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleaned, name: name.trim() || undefined }),
+        body: JSON.stringify({ phone: cleaned }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -516,7 +515,7 @@ function CallMeTab() {
           <CheckCircle className="w-8 h-8 text-emerald-400" />
         </div>
         <p className="text-white font-bold text-sm">You're on the list!</p>
-        <p className="text-xs text-gray-500 max-w-[16rem]">Alex will call <span className="text-gray-300 font-medium">{phone}</span> shortly. No account needed.</p>
+        <p className="text-xs text-gray-500 max-w-[16rem]">Alex will call <span className="text-gray-300 font-medium">{phone}</span> within 24 hours. No account needed.</p>
       </div>
     );
   }
@@ -529,11 +528,6 @@ function CallMeTab() {
       <p className="text-white font-bold text-sm">Want Alex to call you?</p>
       <p className="text-xs text-gray-500 max-w-[16rem] text-center">Leave your number — no signup. Alex will call you back to show you how it works.</p>
       <input
-        type="text" value={name} onChange={e => setName(e.target.value)}
-        placeholder="Your name (optional)"
-        className="w-full max-w-[16rem] px-3 py-2.5 rounded-xl text-sm text-white bg-white/[0.04] border border-white/10 focus:border-purple-500/50 outline-none"
-      />
-      <input
         type="tel" value={phone} onChange={e => { setPhone(e.target.value); if (state === 'error') setState('idle'); }}
         placeholder="+1 555 123 4567"
         className="w-full max-w-[16rem] px-3 py-2.5 rounded-xl text-sm text-white bg-white/[0.04] border border-white/10 focus:border-purple-500/50 outline-none"
@@ -544,6 +538,7 @@ function CallMeTab() {
         style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)', boxShadow: '0 0 20px rgba(124,58,237,0.3)' }}>
         {state === 'sending' ? 'Sending…' : <>Request a callback <ArrowRight className="w-4 h-4" /></>}
       </button>
+      <p className="text-[10px] text-gray-600 text-center">We'll call you within 24 hours.</p>
     </form>
   );
 }
