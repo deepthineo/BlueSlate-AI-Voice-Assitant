@@ -16,7 +16,9 @@ function getFallbackReply(turnCount: number): string {
 // ── Demo call widget — real voice conversation ──────────────────
 const DEMO_BUSINESS = 'Your Franchise';
 const DEMO_GREETING = "Hi there! Thanks for calling — I'm Alex, your AI receptionist. How can I help you today?";
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api';
+// Use `|| '/api'` (not `??`): VITE_API_URL is "" in dev, which `??` won't catch.
+// "/api" is proxied by Vite to localhost:3001; in prod it's the full Render URL.
+const API_BASE = ((import.meta.env.VITE_API_URL as string | undefined)?.trim() || '/api');
 // Real Twilio line visitors can dial to reach the live AI. Override in Vercel via VITE_DEMO_PHONE.
 const DEMO_PHONE = (import.meta.env.VITE_DEMO_PHONE as string | undefined) ?? '+1 570 747 4386';
 
@@ -550,7 +552,7 @@ function DemoTabs({ autoStart }: { autoStart?: boolean }) {
 
   const tabs = [
     { key: 'browser' as const, label: 'Browser', sub: 'Mic + text' },
-    { key: 'call' as const, label: 'Call Alex', sub: DEMO_PHONE.replace('+1 ', '') },
+    { key: 'call' as const, label: 'Call Alex', sub: 'Live · free' },
     { key: 'callme' as const, label: 'Alex calls you', sub: 'We dial you' },
   ];
 
@@ -596,15 +598,18 @@ function DemoTabs({ autoStart }: { autoStart?: boolean }) {
         )}
 
         {tab === 'call' && (
-          <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}>
-              <PhoneCall className="w-7 h-7 text-white" />
-            </div>
-            <p className="text-white font-bold text-sm">Call Alex from your phone</p>
-            <a href={dialHref} className="text-purple-300 font-bold text-xl tabular-nums hover:text-purple-200">{DEMO_PHONE}</a>
-            <p className="text-xs text-gray-500 max-w-[16rem]">Tap to dial. Ask about pricing, schedules, or programs — Alex answers live, 24/7.</p>
-            <p className="text-[10px] text-gray-600 max-w-[16rem]">Note: during our pilot, calls work from verified numbers.</p>
+          <div className="flex flex-col items-center gap-3 py-2 text-center w-full">
+            <p className="text-xs text-gray-500 max-w-[17rem]">
+              Talk to Alex live, right here — free, no app, works on any phone or computer. Tap the mic and ask anything.
+            </p>
+            {/* Browser-based live call: works for everyone, no Twilio, no signup */}
+            <DemoCallWidget autoStart />
+            <details className="w-full max-w-[17rem] mt-1">
+              <summary className="text-[10px] text-gray-600 cursor-pointer hover:text-gray-400">Prefer a real phone call?</summary>
+              <p className="text-[10px] text-gray-600 mt-1.5">
+                Our dialable line <a href={dialHref} className="text-purple-400 hover:text-purple-300">{DEMO_PHONE}</a> is in pilot and currently answers verified numbers only. The live call above works for everyone right now.
+              </p>
+            </details>
           </div>
         )}
 
