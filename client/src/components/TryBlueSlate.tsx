@@ -5,7 +5,10 @@ import {
   HelpCircle, AlertTriangle, Users, ListChecks, ArrowRight, Send, Rocket, X,
 } from 'lucide-react';
 
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api';
+// In dev, VITE_API_URL is blank ("") so we use the relative "/api" path that
+// Vite proxies to localhost:3001. Note: `??` won't catch "" (only null/undefined),
+// so we trim and fall back explicitly. In prod, VITE_API_URL is the full Render /api URL.
+const API_BASE = ((import.meta.env.VITE_API_URL as string | undefined)?.trim() || '/api');
 
 // ── Types (mirror server BusinessScan) ──────────────────────
 interface SampleConversation {

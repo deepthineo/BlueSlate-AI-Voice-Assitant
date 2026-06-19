@@ -357,7 +357,8 @@ function StepAgentConfig({
   );
 }
 
-const TEST_API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api';
+// Use `|| '/api'` (not `??`): VITE_API_URL is "" in dev, which `??` won't catch.
+const TEST_API_BASE = ((import.meta.env.VITE_API_URL as string | undefined)?.trim() || '/api');
 
 function StepTestCall({ locationId, onNext }: { locationId: string; onNext: () => void }) {
   const [phase, setPhase] = useState<'idle' | 'ringing' | 'active' | 'ended'>('idle');
