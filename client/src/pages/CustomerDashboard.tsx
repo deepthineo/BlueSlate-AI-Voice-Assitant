@@ -21,7 +21,7 @@ function outcomeLabel(outcome: string | null) {
     booked:          { label: 'Trial Booked',       color: '#34d399' },
     qualified:       { label: 'Qualified',           color: '#60a5fa' },
     callback_needed: { label: 'Callback Scheduled',  color: '#a78bfa' },
-    info_requested:  { label: 'Info Requested',      color: '#60a5fa' },
+    info_requested:  { label: 'Info Requested',      color: '#fbbf24' },
     not_interested:  { label: 'Not Interested',      color: '#94a3b8' },
     unknown:         { label: 'In Review',           color: '#64748b' },
   };
@@ -349,8 +349,8 @@ export default function CustomerDashboard() {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Match score</span>
                       <span className="flex items-center gap-1">
-                        <Star className="w-3.5 h-3.5 text-blue-400" />
-                        <span className="text-blue-300 font-bold">{inq.score}/100</span>
+                        <Star className="w-3.5 h-3.5 text-amber-400" />
+                        <span className="text-amber-300 font-bold">{inq.score}/100</span>
                       </span>
                     </div>
                   )}

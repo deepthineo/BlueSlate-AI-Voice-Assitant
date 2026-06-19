@@ -18,7 +18,7 @@ const kpis = [
   { label: 'Total Calls', value: '128', sub: '119 completed', icon: Phone, iconColor: '#60a5fa', iconBg: 'rgba(59,130,246,0.12)', glow: 'rgba(59,130,246,0.08)', accent: '#3b82f6' },
   { label: 'Leads Captured', value: '94', sub: '23 this week', icon: Users, iconColor: '#a78bfa', iconBg: 'rgba(139,92,246,0.12)', glow: 'rgba(139,92,246,0.08)', accent: '#8b5cf6' },
   { label: 'Hot Leads', value: '31', sub: 'score ≥ 70', icon: TrendingUp, iconColor: '#34d399', iconBg: 'rgba(52,211,153,0.12)', glow: 'rgba(52,211,153,0.08)', accent: '#10b981' },
-  { label: 'Avg Call Score', value: '+64', sub: 'sentiment', icon: Star, iconColor: '#60a5fa', iconBg: 'rgba(96,165,250,0.12)', glow: 'rgba(96,165,250,0.08)', accent: '#3b82f6' },
+  { label: 'Avg Call Score', value: '+64', sub: 'sentiment', icon: Star, iconColor: '#fbbf24', iconBg: 'rgba(251,191,36,0.12)', glow: 'rgba(251,191,36,0.08)', accent: '#f59e0b' },
 ];
 
 const outcomeData = [

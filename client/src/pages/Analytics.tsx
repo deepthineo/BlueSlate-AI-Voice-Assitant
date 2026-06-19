@@ -4,7 +4,7 @@ import TopBar from '../components/layout/TopBar';
 import api from '../lib/api';
 import type { LeadStats, CallStats } from '../types';
 
-const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#3b82f6', '#10b981'];
+const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
 export default function Analytics() {
   const [leadStats, setLeadStats] = useState<LeadStats | null>(null);

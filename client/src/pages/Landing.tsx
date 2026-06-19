@@ -339,7 +339,7 @@ function DemoCallWidget({ autoStart }: { autoStart?: boolean }) {
           ].map(row => (
             <div key={row.label} className="flex justify-between items-center text-sm">
               <span className="text-gray-500">{row.label}</span>
-              <span className={row.score ? 'text-blue-300 font-bold' : row.highlight ? 'text-emerald-300 font-medium' : 'text-gray-200'}>
+              <span className={row.score ? 'text-amber-300 font-bold' : row.highlight ? 'text-emerald-300 font-medium' : 'text-gray-200'}>
                 {row.value}
               </span>
             </div>
@@ -442,7 +442,7 @@ function DemoCallWidget({ autoStart }: { autoStart?: boolean }) {
         )}
       </div>
 
-      {micError && <p className="text-[10px] text-blue-400 text-center px-4 mb-2">{micError}</p>}
+      {micError && <p className="text-[10px] text-amber-400 text-center px-4 mb-2">{micError}</p>}
 
       {/* Mic button */}
       <div className="flex flex-col items-center pb-2">
@@ -522,8 +522,8 @@ export default function Landing() {
     },
     {
       icon: PhoneCall,
-      color: '#60a5fa',
-      bg: 'rgba(96,165,250,0.1)',
+      color: '#fbbf24',
+      bg: 'rgba(251,191,36,0.1)',
       title: 'Outbound Follow-Ups',
       desc: 'Reach out to warm leads with a single click. Your AI calls them back with a personalized pitch based on what they asked about.',
     },

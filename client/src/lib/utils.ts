@@ -28,14 +28,14 @@ export function formatDuration(seconds: number | null): string {
 export function scoreColor(score: number): string {
   if (score >= 75) return 'text-emerald-400';
   if (score >= 50) return 'text-yellow-400';
-  if (score >= 25) return 'text-blue-400';
+  if (score >= 25) return 'text-orange-400';
   return 'text-red-400';
 }
 
 export function scoreBg(score: number): string {
   if (score >= 75) return 'bg-emerald-500/20 text-emerald-400';
   if (score >= 50) return 'bg-yellow-500/20 text-yellow-400';
-  if (score >= 25) return 'bg-blue-500/20 text-blue-400';
+  if (score >= 25) return 'bg-orange-500/20 text-orange-400';
   return 'bg-red-500/20 text-red-400';
 }
 

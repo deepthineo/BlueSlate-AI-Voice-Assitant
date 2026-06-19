@@ -84,10 +84,10 @@ export default function Dashboard() {
       value: `${(callStats?.avgSentiment ?? 0) >= 0 ? '+' : ''}${((callStats?.avgSentiment ?? 0) * 100).toFixed(0)}`,
       sub: 'sentiment',
       icon: Star,
-      iconColor: '#60a5fa',
-      iconBg: 'rgba(96,165,250,0.12)',
-      glow: 'rgba(96,165,250,0.08)',
-      accent: '#3b82f6',
+      iconColor: '#fbbf24',
+      iconBg: 'rgba(251,191,36,0.12)',
+      glow: 'rgba(251,191,36,0.08)',
+      accent: '#f59e0b',
     },
   ];
 

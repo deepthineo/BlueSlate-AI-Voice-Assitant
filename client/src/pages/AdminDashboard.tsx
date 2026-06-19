@@ -40,8 +40,8 @@ function StatusDot({ callCount, hasAI }: { callCount: number; hasAI: boolean }) 
   if (hasAI) {
     return (
       <span className="inline-flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
-        <span className="text-xs text-blue-400">Set up</span>
+        <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+        <span className="text-xs text-amber-400">Set up</span>
       </span>
     );
   }
