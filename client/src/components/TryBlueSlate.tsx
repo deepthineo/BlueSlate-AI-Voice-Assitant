@@ -256,12 +256,12 @@ function ScanResults({ scan }: { scan: BusinessScan }) {
 
       {/* Knowledge gaps */}
       {scan.knowledge_gaps.length > 0 && (
-        <Card accent="#f59e0b">
-          <CardTitle icon={AlertTriangle} color="#fbbf24">Knowledge gaps we detected</CardTitle>
+        <Card accent="#3b82f6">
+          <CardTitle icon={AlertTriangle} color="#60a5fa">Knowledge gaps we detected</CardTitle>
           <p className="text-sm text-gray-500 mt-1 mb-3">Questions your website can't answer yet — your AI will capture these as leads and flag them for you.</p>
           <ul className="space-y-1.5">
             {scan.knowledge_gaps.map((g, i) => (
-              <li key={i} className="text-sm text-gray-300 flex gap-2"><span className="text-amber-400">⚠</span>{g}</li>
+              <li key={i} className="text-sm text-gray-300 flex gap-2"><span className="text-blue-400">⚠</span>{g}</li>
             ))}
           </ul>
         </Card>

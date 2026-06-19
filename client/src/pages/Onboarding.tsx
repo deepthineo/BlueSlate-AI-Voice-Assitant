@@ -666,7 +666,7 @@ function StepTestCall({ locationId, onNext }: { locationId: string; onNext: () =
             )}
           </div>
 
-          {micError && <p className="text-[10px] text-amber-400 text-center px-4 mb-2">{micError}</p>}
+          {micError && <p className="text-[10px] text-blue-400 text-center px-4 mb-2">{micError}</p>}
 
           {/* Controls */}
           {phase === 'active' && (

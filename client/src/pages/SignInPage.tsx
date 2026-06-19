@@ -90,7 +90,7 @@ export default function SignInPage() {
           >
             <div className="flex gap-0.5 mb-3">
               {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                <Star key={i} className="w-3.5 h-3.5 fill-blue-400 text-blue-400" />
               ))}
             </div>
             <p className="text-sm text-gray-300 leading-relaxed mb-3">"{TESTIMONIAL.quote}"</p>

@@ -221,7 +221,7 @@ export default function Campaigns() {
   const kpis = [
     { label: 'Total Dials', value: calls.length, icon: PhoneOutgoing, color: '#a78bfa', bg: 'rgba(139,92,246,0.1)' },
     { label: 'Connected', value: connected, icon: CheckCircle, color: '#34d399', bg: 'rgba(52,211,153,0.1)' },
-    { label: 'No Answer', value: noAnswer, icon: PhoneCall, color: '#fbbf24', bg: 'rgba(251,191,36,0.1)' },
+    { label: 'No Answer', value: noAnswer, icon: PhoneCall, color: '#60a5fa', bg: 'rgba(96,165,250,0.1)' },
     { label: 'Connect Rate', value: `${connectRate}%`, icon: TrendingUp, color: '#60a5fa', bg: 'rgba(59,130,246,0.1)' },
   ];
 

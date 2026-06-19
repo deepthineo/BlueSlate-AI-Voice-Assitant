@@ -20,6 +20,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import CustomerDashboard from './pages/CustomerDashboard';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import DemoDashboard from './pages/DemoDashboard';
 import { useLocationStore } from './hooks/useLocation';
 import { useRole } from './hooks/useRole';
 
@@ -175,6 +176,9 @@ export default function App() {
       <Routes>
         {/* Customer dashboard — auth required, no franchise setup needed */}
         <Route path="/customer" element={<CustomerDashboard />} />
+
+        {/* Sample dashboard — public, no auth, lets prospects see the product */}
+        <Route path="/demo-dashboard" element={<DemoDashboard />} />
 
         {/* Legal pages — public, no auth required */}
         <Route path="/privacy" element={<Privacy />} />

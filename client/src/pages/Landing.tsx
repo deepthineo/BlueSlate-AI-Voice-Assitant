@@ -17,6 +17,8 @@ function getFallbackReply(turnCount: number): string {
 const DEMO_BUSINESS = 'Your Franchise';
 const DEMO_GREETING = "Hi there! Thanks for calling — I'm Alex, your AI receptionist. How can I help you today?";
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001/api';
+// Real Twilio line visitors can dial to reach the live AI. Override in Vercel via VITE_DEMO_PHONE.
+const DEMO_PHONE = (import.meta.env.VITE_DEMO_PHONE as string | undefined) ?? '+1 570 747 4386';
 
 function DemoCallWidget({ autoStart }: { autoStart?: boolean }) {
   const [phase, setPhase] = useState<'idle' | 'ringing' | 'active' | 'ended'>('idle');
@@ -268,6 +270,22 @@ function DemoCallWidget({ autoStart }: { autoStart?: boolean }) {
           <Play className="w-4 h-4 fill-white" /> Try a Demo — No Login Needed
         </button>
         <p className="text-xs text-gray-600">← Experience it yourself. No account needed.</p>
+
+        {/* Or preview the full product */}
+        <div className="flex items-center gap-3 w-full max-w-xs mt-1">
+          <div className="h-px flex-1 bg-white/10" />
+          <span className="text-xs text-gray-500 font-medium">OR</span>
+          <div className="h-px flex-1 bg-white/10" />
+        </div>
+        <Link to="/demo-dashboard"
+          className="flex flex-col items-center gap-1 px-6 py-3 rounded-2xl border transition-all hover:scale-105 active:scale-95"
+          style={{ borderColor: 'rgba(124,58,237,0.4)', background: 'rgba(124,58,237,0.08)' }}>
+          <span className="flex items-center gap-2 text-purple-300 text-xs font-semibold uppercase tracking-wide">
+            <BarChart3 className="w-3.5 h-3.5" /> Preview the dashboard
+          </span>
+          <span className="text-white font-bold text-sm">See leads &amp; calls in action</span>
+        </Link>
+        <p className="text-xs text-gray-600 text-center">When you sign up, your AI gets its own phone number to answer real calls 24/7.</p>
       </div>
     );
   }
@@ -321,7 +339,7 @@ function DemoCallWidget({ autoStart }: { autoStart?: boolean }) {
           ].map(row => (
             <div key={row.label} className="flex justify-between items-center text-sm">
               <span className="text-gray-500">{row.label}</span>
-              <span className={row.score ? 'text-amber-300 font-bold' : row.highlight ? 'text-emerald-300 font-medium' : 'text-gray-200'}>
+              <span className={row.score ? 'text-blue-300 font-bold' : row.highlight ? 'text-emerald-300 font-medium' : 'text-gray-200'}>
                 {row.value}
               </span>
             </div>
@@ -424,7 +442,7 @@ function DemoCallWidget({ autoStart }: { autoStart?: boolean }) {
         )}
       </div>
 
-      {micError && <p className="text-[10px] text-amber-400 text-center px-4 mb-2">{micError}</p>}
+      {micError && <p className="text-[10px] text-blue-400 text-center px-4 mb-2">{micError}</p>}
 
       {/* Mic button */}
       <div className="flex flex-col items-center pb-2">
@@ -504,8 +522,8 @@ export default function Landing() {
     },
     {
       icon: PhoneCall,
-      color: '#fbbf24',
-      bg: 'rgba(251,191,36,0.1)',
+      color: '#60a5fa',
+      bg: 'rgba(96,165,250,0.1)',
       title: 'Outbound Follow-Ups',
       desc: 'Reach out to warm leads with a single click. Your AI calls them back with a personalized pitch based on what they asked about.',
     },
