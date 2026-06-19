@@ -479,6 +479,93 @@ function DemoCallWidget({ autoStart }: { autoStart?: boolean }) {
   );
 }
 
+// ── 3-tab live demo: Browser / Call us / We call you ────────────
+function DemoTabs({ autoStart }: { autoStart?: boolean }) {
+  const [tab, setTab] = useState<'browser' | 'call' | 'callme'>('browser');
+  const dialHref = `tel:${DEMO_PHONE.replace(/[^\d+]/g, '')}`;
+
+  const tabs = [
+    { key: 'browser' as const, label: 'Browser', sub: 'Mic + text' },
+    { key: 'call' as const, label: 'Call Alex', sub: DEMO_PHONE.replace('+1 ', '') },
+    { key: 'callme' as const, label: 'Alex calls you', sub: 'We dial you' },
+  ];
+
+  return (
+    <div className="rounded-3xl overflow-hidden w-[22rem] max-w-full"
+      style={{ background: 'linear-gradient(180deg, #0f0f1a 0%, #080810 100%)', border: '1px solid rgba(255,255,255,0.09)', boxShadow: '0 0 60px rgba(124,58,237,0.15)' }}>
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pt-4 pb-3">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-white text-sm">Alex</span>
+          <span className="text-xs text-gray-500">· AI Receptionist</span>
+        </div>
+        <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+          </span>
+          Online
+        </span>
+      </div>
+
+      {/* Tabs */}
+      <div className="grid grid-cols-3 border-b border-white/10">
+        {tabs.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className="flex flex-col items-center gap-0.5 py-2.5 transition-colors relative"
+            style={{ background: tab === t.key ? 'rgba(124,58,237,0.10)' : 'transparent' }}>
+            <span className={`text-xs font-semibold ${tab === t.key ? 'text-purple-300' : 'text-gray-400'}`}>{t.label}</span>
+            <span className="text-[10px] text-gray-600">{t.sub}</span>
+            {tab === t.key && <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-purple-500" />}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab body */}
+      <div className="p-5 flex flex-col items-center">
+        {tab === 'browser' && (
+          <div className="w-full flex flex-col items-center">
+            <p className="text-xs text-purple-300 font-semibold uppercase tracking-wide mb-3 self-start">Live Voice Demo</p>
+            <DemoCallWidget autoStart={autoStart} />
+          </div>
+        )}
+
+        {tab === 'call' && (
+          <div className="flex flex-col items-center gap-3 py-4 text-center">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}>
+              <PhoneCall className="w-7 h-7 text-white" />
+            </div>
+            <p className="text-white font-bold text-sm">Call Alex from your phone</p>
+            <a href={dialHref} className="text-purple-300 font-bold text-xl tabular-nums hover:text-purple-200">{DEMO_PHONE}</a>
+            <p className="text-xs text-gray-500 max-w-[16rem]">Tap to dial. Ask about pricing, schedules, or programs — Alex answers live, 24/7.</p>
+            <p className="text-[10px] text-gray-600 max-w-[16rem]">Note: during our pilot, calls work from verified numbers.</p>
+          </div>
+        )}
+
+        {tab === 'callme' && (
+          <div className="flex flex-col items-center gap-3 py-4 text-center">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)' }}>
+              <Phone className="w-7 h-7 text-white fill-white" />
+            </div>
+            <p className="text-white font-bold text-sm">Want Alex to call you?</p>
+            <p className="text-xs text-gray-500 max-w-[16rem]">
+              Outbound calling is part of BlueSlate. Sign up and Alex will call your leads back automatically with a personalized pitch.
+            </p>
+            <Link to="/sign-up"
+              className="mt-1 flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)', boxShadow: '0 0 20px rgba(124,58,237,0.3)' }}>
+              Get started <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Landing Page ───────────────────────────────────────────
 export default function Landing() {
   const navigate = useNavigate();
@@ -711,9 +798,9 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* Right: live demo widget */}
+            {/* Right: live demo widget — 3 tabs */}
             <div id="demo" className="flex-shrink-0 flex flex-col items-center gap-4">
-              <DemoCallWidget autoStart={demoAutoStart} />
+              <DemoTabs autoStart={demoAutoStart} />
             </div>
           </div>
 
