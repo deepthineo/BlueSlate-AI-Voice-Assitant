@@ -479,6 +479,75 @@ function DemoCallWidget({ autoStart }: { autoStart?: boolean }) {
   );
 }
 
+// ── "Alex calls you" tab — no signup, just leave a number ───────
+function CallMeTab() {
+  const [phone, setPhone] = useState('');
+  const [name, setName] = useState('');
+  const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+  const [errMsg, setErrMsg] = useState('');
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (state === 'sending') return;
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    if (cleaned.length < 8) { setErrMsg('Enter a valid phone number.'); setState('error'); return; }
+    setState('sending'); setErrMsg('');
+    try {
+      const res = await fetch(`${API_BASE}/demo/callback-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleaned, name: name.trim() || undefined }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'Something went wrong.');
+      }
+      setState('done');
+    } catch (err) {
+      setErrMsg(err instanceof Error ? err.message : 'Something went wrong.');
+      setState('error');
+    }
+  }
+
+  if (state === 'done') {
+    return (
+      <div className="flex flex-col items-center gap-3 py-6 text-center">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.15)' }}>
+          <CheckCircle className="w-8 h-8 text-emerald-400" />
+        </div>
+        <p className="text-white font-bold text-sm">You're on the list!</p>
+        <p className="text-xs text-gray-500 max-w-[16rem]">Alex will call <span className="text-gray-300 font-medium">{phone}</span> shortly. No account needed.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="flex flex-col items-center gap-3 py-4 w-full">
+      <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)' }}>
+        <Phone className="w-7 h-7 text-white fill-white" />
+      </div>
+      <p className="text-white font-bold text-sm">Want Alex to call you?</p>
+      <p className="text-xs text-gray-500 max-w-[16rem] text-center">Leave your number — no signup. Alex will call you back to show you how it works.</p>
+      <input
+        type="text" value={name} onChange={e => setName(e.target.value)}
+        placeholder="Your name (optional)"
+        className="w-full max-w-[16rem] px-3 py-2.5 rounded-xl text-sm text-white bg-white/[0.04] border border-white/10 focus:border-purple-500/50 outline-none"
+      />
+      <input
+        type="tel" value={phone} onChange={e => { setPhone(e.target.value); if (state === 'error') setState('idle'); }}
+        placeholder="+1 555 123 4567"
+        className="w-full max-w-[16rem] px-3 py-2.5 rounded-xl text-sm text-white bg-white/[0.04] border border-white/10 focus:border-purple-500/50 outline-none"
+      />
+      {state === 'error' && <p className="text-[11px] text-red-400">{errMsg}</p>}
+      <button type="submit" disabled={state === 'sending'}
+        className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 disabled:opacity-60"
+        style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)', boxShadow: '0 0 20px rgba(124,58,237,0.3)' }}>
+        {state === 'sending' ? 'Sending…' : <>Request a callback <ArrowRight className="w-4 h-4" /></>}
+      </button>
+    </form>
+  );
+}
+
 // ── 3-tab live demo: Browser / Call us / We call you ────────────
 function DemoTabs({ autoStart }: { autoStart?: boolean }) {
   const [tab, setTab] = useState<'browser' | 'call' | 'callme'>('browser');
@@ -544,23 +613,7 @@ function DemoTabs({ autoStart }: { autoStart?: boolean }) {
           </div>
         )}
 
-        {tab === 'callme' && (
-          <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)' }}>
-              <Phone className="w-7 h-7 text-white fill-white" />
-            </div>
-            <p className="text-white font-bold text-sm">Want Alex to call you?</p>
-            <p className="text-xs text-gray-500 max-w-[16rem]">
-              Outbound calling is part of BlueSlate. Sign up and Alex will call your leads back automatically with a personalized pitch.
-            </p>
-            <Link to="/sign-up"
-              className="mt-1 flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)', boxShadow: '0 0 20px rgba(124,58,237,0.3)' }}>
-              Get started <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        )}
+        {tab === 'callme' && <CallMeTab />}
       </div>
     </div>
   );

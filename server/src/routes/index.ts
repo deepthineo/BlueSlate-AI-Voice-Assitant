@@ -94,6 +94,62 @@ router.post('/demo/chat', async (req, res) => {
   }
 });
 
+// ── Demo: visitor requests a callback (no auth, no signup) ────────
+// First-time free visitors leave their number from the landing demo.
+// Saved as a lead against the demo location so the team can call back
+// (real outbound dialing requires an upgraded Twilio number).
+const DEMO_LOCATION_ID = 'b0000000-0000-0000-0000-000000000001';
+
+const callbackLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests — please wait a few minutes.' },
+});
+
+router.post('/demo/callback-request', callbackLimiter, async (req, res) => {
+  const { phone, name } = req.body as { phone?: string; name?: string };
+
+  // Light validation — must look like a phone number
+  const cleaned = (phone ?? '').replace(/[^\d+]/g, '');
+  if (cleaned.length < 8 || cleaned.length > 16) {
+    res.status(400).json({ error: 'A valid phone number is required.' });
+    return;
+  }
+
+  try {
+    const { supabase } = await import('../config/supabase');
+    const { data: loc } = await supabase
+      .from('locations')
+      .select('id, org_id')
+      .eq('id', DEMO_LOCATION_ID)
+      .single();
+
+    if (!loc) {
+      res.status(503).json({ error: 'Demo not configured. Please try again later.' });
+      return;
+    }
+
+    await supabase.from('leads').insert({
+      location_id: loc.id,
+      org_id: loc.org_id,
+      name: (name ?? '').trim() || null,
+      phone: cleaned,
+      core_interest: 'Requested an AI callback from the landing demo',
+      call_outcome: 'callback_requested',
+      status: 'new',
+      score: 50,
+      score_reason: 'Self-submitted callback request (landing demo)',
+    });
+
+    res.json({ success: true, message: "Thanks! Alex will call you back shortly." });
+  } catch (err) {
+    console.error('[Demo Callback] error:', err);
+    res.status(500).json({ error: 'Could not save your request. Please try again.' });
+  }
+});
+
 // ── Try BlueSlate: public website scan (no auth) ──────────────────
 // Visitor pastes their URL → we scrape → Gemini analyzes → instant preview.
 // Rate-limited because it triggers an outbound fetch + LLM spend per call.
