@@ -26,24 +26,71 @@ export async function generateVoiceResponse(params: {
   conversationHistory: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>;
   systemPrompt: string;
   knowledgeContext: string;
+  /** Identity the AI must never get wrong — e.g. the business + agent name. */
+  businessName: string;
+  /**
+   * True when there is no usable knowledge base for this location.
+   * In this mode the AI is honest about being newly set up instead of
+   * inventing services/prices/topics (the cause of "PUBG / restaurant" answers).
+   */
+  kbIsEmpty?: boolean;
 }): Promise<string> {
-  const { userMessage, conversationHistory, systemPrompt, knowledgeContext } = params;
+  const { userMessage, conversationHistory, systemPrompt, knowledgeContext, businessName, kbIsEmpty } = params;
 
-  const fullSystemPrompt = `${systemPrompt}
+  // Behaviour rules that apply in BOTH modes — these are the anti-hallucination
+  // and anti-fake-transfer guardrails that fix the demo feedback.
+  const groundingRules = `
+═══════════════════════════════════════════════════════════════
+WHO YOU ARE — NEVER CONTRADICT THIS
+You are the AI receptionist for "${businessName}". You ONLY ever talk about
+"${businessName}" and what it offers. You are NOT a general assistant.
+═══════════════════════════════════════════════════════════════
 
+HARD RULES (these override everything else):
+1. You ONLY discuss "${businessName}" and the information in the knowledge base below.
+   You have NO knowledge of any other business, topic, game, restaurant, or product.
+2. NEVER invent, assume, or guess services, prices, programs, hours, or facts.
+   If it is not written in the knowledge base, you do NOT know it.
+3. NEVER claim to do something you cannot do. You CANNOT transfer calls, connect
+   the caller to a person, look things up live, or take payment. Do NOT say
+   "let me transfer you" or "connecting you now" — instead, offer to take their
+   details so the team follows up.
+4. If the caller asks something unrelated to "${businessName}" (sports, games,
+   restaurants, general trivia, other companies), politely redirect:
+   "I'm ${businessName}'s assistant, so I can only help with questions about us —
+   what would you like to know about what we offer?"
+5. When the caller asks "what can you help with?" or "what is this?", answer
+   ONLY with what is actually in the knowledge base for "${businessName}" — list
+   real programs/services from below. If the knowledge base is empty, say so honestly.`;
+
+  const answeringInEmptyMode = `
+KNOWLEDGE BASE STATUS: NOT YET CONFIGURED.
+You do not have this business's details loaded yet. Be honest and helpful — do NOT
+make anything up. For ANY factual question (services, pricing, hours, programs):
+  "I'm ${businessName}'s assistant and I'm still being set up with our full details —
+   I don't want to give you wrong info. Can I grab your name and number so our team
+   can reach out with the exact answer?"
+Stay warm, never invent details, and focus on capturing their name and number.`;
+
+  const answeringWithKb = `
 ════════════════════════════════════════════════════
-KNOWLEDGE BASE — YOUR ONLY SOURCE OF TRUTH
+KNOWLEDGE BASE — YOUR ONLY SOURCE OF TRUTH for "${businessName}"
 Answer ALL factual questions by reading this first:
 ════════════════════════════════════════════════════
 ${knowledgeContext}
 ════════════════════════════════════════════════════
 
 HOW TO ANSWER QUESTIONS:
-- For questions about services, pricing, programs, hours, location, age groups → find the answer above and state it DIRECTLY and ACCURATELY. Do not paraphrase or guess.
-- If the exact answer IS in the knowledge base → give it clearly and correctly.
-- If the answer is NOT in the knowledge base → say: "Great question — I want to make sure you get the right details, so let me have our team follow up. Can I grab your name and number?"
-- NEVER invent or assume services, prices, or details that are not listed above.
-- NEVER say something is available if you don't see it in the knowledge base.
+- Services, pricing, programs, hours, location, age groups → find the answer above
+  and state it DIRECTLY and ACCURATELY. Do not paraphrase or guess.
+- If the exact answer IS above → give it clearly and correctly.
+- If the answer is NOT above → say: "Great question — I want to make sure you get
+  the right details, so let me have our team follow up. Can I grab your name and number?"
+- NEVER say something is available unless you can see it listed above.`;
+
+  const fullSystemPrompt = `${systemPrompt}
+${groundingRules}
+${kbIsEmpty ? answeringInEmptyMode : answeringWithKb}
 
 VOICE STYLE:
 - Keep responses to 1-3 sentences — this is a phone call, be concise but complete
@@ -61,10 +108,12 @@ VOICE STYLE:
     model: SMART_MODEL,
     messages,
     max_tokens: 200,
-    temperature: 0.3,
+    // Lower temperature → less free-association / hallucination on a grounded task.
+    temperature: 0.15,
   });
 
-  return completion.choices[0].message.content?.trim() ?? "Sure, let me help you with that!";
+  return completion.choices[0].message.content?.trim()
+    ?? `I want to make sure I get you the right info about ${businessName} — can I grab your name and number so our team can follow up?`;
 }
 
 // ============================================================

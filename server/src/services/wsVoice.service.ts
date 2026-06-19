@@ -6,7 +6,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { IncomingMessage, Server } from 'http';
 import { supabase } from '../config/supabase';
 import { generateVoiceResponse, extractLeadFromTranscript, summarizeCall } from './ai.service';
-import { getActiveKnowledgeBase, buildKnowledgeContextString } from './knowledge.service';
+import { getActiveKnowledgeBase, buildKnowledgeContextString, isKnowledgeBaseUsable } from './knowledge.service';
 import type { Location } from '../types';
 
 interface Turn {
@@ -21,6 +21,7 @@ interface Session {
   location: Location;
   turns: Turn[];
   knowledgeContext: string;
+  kbIsEmpty: boolean;
   callerName: string | null;
 }
 
@@ -81,9 +82,10 @@ async function initSession(sessionId: string, locationId: string, ws: WebSocket,
     .single();
 
   const kb = await getActiveKnowledgeBase(location.id);
-  const knowledgeContext = kb
+  const kbIsEmpty = !isKnowledgeBaseUsable(kb);
+  const knowledgeContext = kb && !kbIsEmpty
     ? buildKnowledgeContextString(kb)
-    : `Business: ${location.name}`;
+    : `Business name: ${location.name}. (No detailed knowledge base configured yet.)`;
 
   const session: Session = {
     callId: call?.id ?? sessionId,
@@ -92,11 +94,19 @@ async function initSession(sessionId: string, locationId: string, ws: WebSocket,
     location,
     turns: [],
     knowledgeContext,
+    kbIsEmpty,
     callerName,
   };
   sessions.set(sessionId, session);
 
-  const greeting = location.ai_config?.greeting ?? `Hi! Thanks for calling ${location.name}. How can I help?`;
+  // A self-aware greeting that states identity + what the AI can do.
+  // When the KB isn't loaded yet, we don't promise answers we can't give.
+  const agentName = location.ai_config?.agent_name ?? 'Alex';
+  const greeting =
+    location.ai_config?.greeting ??
+    (kbIsEmpty
+      ? `Hi! This is ${agentName}, the AI assistant for ${location.name}. I'm still being set up with our full details, but I can take your info so our team follows up — what can I help you with?`
+      : `Hi, thanks for calling ${location.name}! This is ${agentName}, your AI assistant. I can answer questions about our programs, pricing, and hours — what can I help you with today?`);
 
   // Store greeting as assistant turn (NOT included in Gemini history — see buildHistory)
   session.turns.push({ role: 'assistant', content: greeting });
@@ -123,7 +133,7 @@ async function handleMessage(sessionId: string, ws: WebSocket, raw: string): Pro
   if (msg.type === 'end_call') { await endSession(sessionId); return; }
   if (msg.type !== 'user_speech' || !msg.text?.trim()) return;
 
-  const { location, turns, knowledgeContext, callId } = session;
+  const { location, turns, knowledgeContext, kbIsEmpty, callId } = session;
   const userText = msg.text.trim();
 
   turns.push({ role: 'user', content: userText });
@@ -159,8 +169,10 @@ async function handleMessage(sessionId: string, ws: WebSocket, raw: string): Pro
   const aiText = await generateVoiceResponse({
     userMessage: userText,
     conversationHistory: history,
-    systemPrompt: `You are ${location.ai_config?.agent_name ?? 'Alex'} for ${location.name}. Keep responses under 30 words. Drive toward booking a free trial.`,
+    systemPrompt: `You are ${location.ai_config?.agent_name ?? 'Alex'}, the AI receptionist for ${location.name}. Keep responses under 30 words. Drive toward booking a free trial or capturing the caller's name and number.`,
     knowledgeContext,
+    businessName: location.name,
+    kbIsEmpty,
   });
 
   turns.push({ role: 'assistant', content: aiText });

@@ -2,7 +2,7 @@ import twilio from 'twilio';
 import { supabase } from '../config/supabase';
 import { env } from '../config/env';
 import { generateVoiceResponse, extractLeadFromTranscript, summarizeCall } from './ai.service';
-import { getActiveKnowledgeBase, buildKnowledgeContextString } from './knowledge.service';
+import { getActiveKnowledgeBase, buildKnowledgeContextString, isKnowledgeBaseUsable } from './knowledge.service';
 import type { Location } from '../types';
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
@@ -150,9 +150,10 @@ export async function processUserSpeech(params: {
 
     // Load knowledge base context
     const kb = await getActiveKnowledgeBase(location.id);
-    const knowledgeContext = kb
+    const kbIsEmpty = !isKnowledgeBaseUsable(kb);
+    const knowledgeContext = kb && !kbIsEmpty
       ? buildKnowledgeContextString(kb)
-      : `Business: ${location.name}. Knowledge base not loaded yet.`;
+      : `Business name: ${location.name}. (No detailed knowledge base configured yet.)`;
 
     // Build system prompt
     const systemPrompt = `You are ${location.ai_config.agent_name}, a warm and friendly receptionist at ${location.name}. This is a LIVE PHONE CALL.
@@ -170,7 +171,6 @@ Your goal: First understand what they need, then guide them toward booking a fre
 Response rules:
 - MAX 28 words per response — this is a phone call, keep it conversational
 - Never sound scripted or robotic
-- If something isn't in your knowledge base: "That's a great one — I want to make sure you get the right answer on that, so I'll have our team reach out. Sound good?"
 
 Turn ${userTurnCount} of ${location.ai_config.max_turns}. When approaching the last few turns, wrap up naturally.`;
 
@@ -180,6 +180,8 @@ Turn ${userTurnCount} of ${location.ai_config.max_turns}. When approaching the l
       conversationHistory: history,
       systemPrompt,
       knowledgeContext,
+      businessName: location.name,
+      kbIsEmpty,
     });
 
     // Store assistant turn

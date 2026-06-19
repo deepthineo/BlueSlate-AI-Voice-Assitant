@@ -156,6 +156,26 @@ export async function getActiveKnowledgeBase(locationId: string): Promise<Knowle
 }
 
 // ============================================================
+// Is a knowledge base actually usable for grounding the AI?
+// A KB that exists but has no real content (just a title, or nothing)
+// will cause the model to hallucinate — treat it as empty so the AI
+// switches to honest "still being set up" mode instead of guessing.
+// ============================================================
+export function isKnowledgeBaseUsable(kb: KnowledgeBase | null): boolean {
+  const d = kb?.structured_data;
+  if (!d) return false;
+  const hasSubstance =
+    !!d.description ||
+    (d.services?.length ?? 0) > 0 ||
+    (d.pricing?.length ?? 0) > 0 ||
+    (d.programs?.length ?? 0) > 0 ||
+    (d.faq?.length ?? 0) > 0 ||
+    !!d.location_summary ||
+    (d.key_selling_points?.length ?? 0) > 0;
+  return hasSubstance;
+}
+
+// ============================================================
 // Build knowledge context string for AI prompt
 // ============================================================
 export function buildKnowledgeContextString(kb: KnowledgeBase): string {

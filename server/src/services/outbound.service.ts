@@ -2,7 +2,7 @@ import twilio from 'twilio';
 import { supabase } from '../config/supabase';
 import { env } from '../config/env';
 import { generateVoiceResponse } from './ai.service';
-import { getActiveKnowledgeBase, buildKnowledgeContextString } from './knowledge.service';
+import { getActiveKnowledgeBase, buildKnowledgeContextString, isKnowledgeBaseUsable } from './knowledge.service';
 import { getLocationById } from './voice.service';
 import type { Location } from '../types';
 
@@ -244,9 +244,10 @@ export async function processOutboundSpeech(params: {
 
     // Load KB
     const kb = await getActiveKnowledgeBase(locationId);
-    const knowledgeContext = kb
+    const kbIsEmpty = !isKnowledgeBaseUsable(kb);
+    const knowledgeContext = kb && !kbIsEmpty
       ? buildKnowledgeContextString(kb)
-      : `Business: ${location.name}.`;
+      : `Business name: ${location.name}. (No detailed knowledge base configured yet.)`;
 
     // Outbound system prompt — different tone from inbound
     const systemPrompt = `You are ${location.ai_config.agent_name}, an AI representative calling on behalf of ${location.name}.
@@ -271,6 +272,8 @@ RULES:
       conversationHistory: history,
       systemPrompt,
       knowledgeContext,
+      businessName: location.name,
+      kbIsEmpty,
     });
 
     await supabase.from('call_turns').insert({
