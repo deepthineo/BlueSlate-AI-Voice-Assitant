@@ -32,7 +32,7 @@ function QuickDialModal({
     if (!phone.trim()) return;
     setStatus('calling');
     try {
-      await api.post('/voice/outbound', {
+      await api.post('/retell/outbound', {
         toPhone: phone.trim(),
         locationId,
         context: [name && `Calling ${name}`, reason].filter(Boolean).join('. '),

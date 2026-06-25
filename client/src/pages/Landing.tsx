@@ -6,9 +6,9 @@ import {
   BarChart3, PhoneCall, Sparkles, Play, PhoneOff,
 } from 'lucide-react';
 import TryBlueSlate from '../components/TryBlueSlate';
-import VapiCallButton from '../components/VapiCallButton';
+import RetellCallButton from '../components/RetellCallButton';
 import CallReceptionist from '../components/CallReceptionist';
-import { VAPI_PHONE, VAPI_PHONE_HREF, isVapiConfigured } from '../lib/vapi';
+import { RETELL_PHONE, RETELL_PHONE_HREF, isRetellConfigured } from '../lib/retell';
 
 // Fallback replies if the API is unreachable
 function getFallbackReply(turnCount: number): string {
@@ -552,7 +552,7 @@ function DemoTabs({ autoStart }: { autoStart?: boolean }) {
 
   const tabs = [
     { key: 'browser' as const, label: 'Browser', sub: 'Mic + text' },
-    { key: 'call' as const, label: 'Call AI', sub: VAPI_PHONE.replace('+1 ', '') },
+    { key: 'call' as const, label: 'Call AI', sub: RETELL_PHONE.replace('+1 ', '') },
     { key: 'callme' as const, label: 'AI calls you', sub: 'We dial you' },
   ];
 
@@ -599,13 +599,13 @@ function DemoTabs({ autoStart }: { autoStart?: boolean }) {
 
         {tab === 'call' && (
           <div className="flex flex-col items-center gap-4 py-3 text-center w-full">
-            {isVapiConfigured ? (
+            {isRetellConfigured ? (
               <>
                 <p className="text-xs text-gray-500 max-w-[17rem]">
-                  Talk to our AI receptionist live — same assistant that answers the phone. Free, works on any device.
+                  Talk to our AI receptionist live — same agent that answers the phone. Free, works on any device.
                 </p>
-                {/* In-browser call to the SAME Vapi assistant as the phone number */}
-                <VapiCallButton />
+                {/* In-browser call to the SAME Retell agent as the phone number */}
+                <RetellCallButton />
                 <div className="flex items-center gap-3 w-full max-w-[16rem] mt-1">
                   <div className="h-px flex-1 bg-white/10" />
                   <span className="text-[10px] text-gray-600">OR CALL</span>
@@ -616,7 +616,7 @@ function DemoTabs({ autoStart }: { autoStart?: boolean }) {
             ) : (
               <div className="flex flex-col items-center gap-3 py-4">
                 <p className="text-white font-bold text-sm">Call our AI receptionist</p>
-                <a href={VAPI_PHONE_HREF} className="text-purple-300 font-bold text-xl tabular-nums hover:text-purple-200">{VAPI_PHONE}</a>
+                <a href={RETELL_PHONE_HREF} className="text-purple-300 font-bold text-xl tabular-nums hover:text-purple-200">{RETELL_PHONE}</a>
                 <p className="text-xs text-gray-500 max-w-[16rem]">Tap to dial and ask Alex anything — 24/7.</p>
               </div>
             )}
@@ -847,10 +847,10 @@ export default function Landing() {
 
               {/* Talk to AI live + click-to-call the receptionist number */}
               <div className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start mb-8">
-                <VapiCallButton variant="pill" />
+                <RetellCallButton variant="pill" />
                 <span className="text-sm text-gray-500 flex items-center gap-1.5">
                   or call our AI live —{' '}
-                  <a href={VAPI_PHONE_HREF} className="text-purple-300 font-semibold hover:text-purple-200 tabular-nums">{VAPI_PHONE}</a>
+                  <a href={RETELL_PHONE_HREF} className="text-purple-300 font-semibold hover:text-purple-200 tabular-nums">{RETELL_PHONE}</a>
                 </span>
               </div>
 

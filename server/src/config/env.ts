@@ -17,9 +17,17 @@ const envSchema = z.object({
   CLERK_WEBHOOK_SECRET: z.string().default(''),
 
   // Twilio — free trial at twilio.com (no credit card, $15.50 loaded)
+  // Still the CARRIER for the imported number (+1 945-223-1301); Retell runs the agent.
   TWILIO_ACCOUNT_SID: z.string().min(1, 'TWILIO_ACCOUNT_SID required'),
   TWILIO_AUTH_TOKEN: z.string().min(1, 'TWILIO_AUTH_TOKEN required'),
   TWILIO_PHONE_NUMBER: z.string().min(1, 'TWILIO_PHONE_NUMBER required'),
+
+  // Retell AI — voice agent (inbound + outbound). retellai.com → API key + agent.
+  // The agent's "Custom LLM" websocket URL must point at THIS server: wss://<server>/ws/retell-llm
+  RETELL_API_KEY: z.string().optional(),
+  RETELL_AGENT_ID: z.string().optional(),
+  // The Retell-owned/managed number used for outbound (E.164, e.g. +19452231301).
+  RETELL_FROM_NUMBER: z.string().optional(),
 
   // Groq — free at console.groq.com (14,400 req/day free tier). Used for real-time voice (low latency).
   GROQ_API_KEY: z.string().min(1, 'GROQ_API_KEY required'),

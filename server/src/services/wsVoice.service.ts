@@ -28,7 +28,15 @@ interface Session {
 const sessions = new Map<string, Session>();
 
 export function attachVoiceWebSocket(server: Server): void {
-  const wss = new WebSocketServer({ server, path: '/ws/voice' });
+  // noServer mode so multiple WS endpoints can share one HTTP server without
+  // their upgrade handlers fighting over (and destroying) each other's sockets.
+  const wss = new WebSocketServer({ noServer: true });
+
+  server.on('upgrade', (req, socket, head) => {
+    const { pathname } = new URL(req.url ?? '', 'http://localhost');
+    if (pathname !== '/ws/voice') return; // not ours — leave it for another handler
+    wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
+  });
 
   wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
     const url = new URL(req.url!, 'http://localhost');

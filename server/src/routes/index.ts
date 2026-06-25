@@ -6,6 +6,7 @@ import { env } from '../config/env';
 import { scrapeWebsite } from '../services/scraper.service';
 import { analyzeBusinessWebsite } from '../services/gemini.service';
 import voiceRoutes from './voice.routes';
+import retellRoutes from './retell.routes';
 import knowledgeRoutes from './knowledge.routes';
 import leadsRoutes from './leads.routes';
 import callsRoutes from './calls.routes';
@@ -326,8 +327,11 @@ router.use('/portal', portalRoutes);
 // Customer routes — public, no auth (franchise chat + inquiry lookup)
 router.use('/customer', customerRoutes);
 
-// Voice webhooks (no auth — Twilio signature validates)
+// Voice webhooks (no auth — Twilio signature validates). Legacy/fallback path.
 router.use('/voice', voiceRoutes);
+
+// Retell AI — active voice path (web call, outbound, lifecycle webhook).
+router.use('/retell', retellRoutes);
 
 // Authenticated API routes
 router.use('/locations', locationsRoutes);

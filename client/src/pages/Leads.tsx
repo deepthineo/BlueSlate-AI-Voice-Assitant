@@ -26,7 +26,7 @@ function OutboundCallModal({
   async function startCall() {
     setStatus('calling');
     try {
-      await api.post('/voice/outbound', {
+      await api.post('/retell/outbound', {
         toPhone: lead.phone,
         locationId,
         leadId: lead.id,

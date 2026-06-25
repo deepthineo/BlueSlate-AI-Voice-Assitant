@@ -1,65 +1,55 @@
 import { useEffect, useRef, useState } from 'react';
 import { Mic, PhoneOff, Loader2, Phone } from 'lucide-react';
-import { getVapi, VAPI_ASSISTANT_ID, isVapiConfigured } from '../lib/vapi';
+import { RetellWebClient } from 'retell-client-js-sdk';
+import api from '../lib/api';
 
 // ──────────────────────────────────────────────────────────────
 // "Talk to AI" — starts an in-browser voice conversation with the
-// SAME Vapi assistant assigned to the inbound phone number.
-// Works on desktop + mobile browsers (Chrome, Edge, Safari) since
-// the Vapi Web SDK uses WebRTC, not the Web Speech API.
+// SAME Retell agent assigned to the inbound phone number.
+// The browser asks our backend for a short-lived access token
+// (/api/retell/web-call), then joins the call over WebRTC.
 //
-// Reusable across pages — drop <VapiCallButton /> anywhere.
+// Works on desktop + mobile browsers (Chrome, Edge, Safari).
+// Reusable across pages — drop <RetellCallButton /> anywhere.
 // ──────────────────────────────────────────────────────────────
 
 type CallState = 'idle' | 'connecting' | 'active' | 'ended' | 'error';
 
 interface Props {
-  /** Override the default assistant (defaults to VITE_VAPI_ASSISTANT_ID). */
-  assistantId?: string;
+  /** Optionally bind the call to a specific location's KB (defaults to demo). */
+  locationId?: string;
   /** Compact pill vs. full card. */
   variant?: 'card' | 'pill';
   className?: string;
 }
 
-export default function VapiCallButton({ assistantId, variant = 'card', className = '' }: Props) {
+export default function RetellCallButton({ locationId, variant = 'card', className = '' }: Props) {
   const [state, setState] = useState<CallState>('idle');
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [errMsg, setErrMsg] = useState('');
   const [seconds, setSeconds] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const clientRef = useRef<RetellWebClient | null>(null);
 
-  const id = assistantId ?? VAPI_ASSISTANT_ID;
-
-  // Wire up Vapi event listeners once.
-  useEffect(() => {
-    const vapi = getVapi();
-    if (!vapi) return;
-
-    const onStart = () => { setState('active'); setErrMsg(''); };
-    const onEnd = () => { setState('ended'); setAiSpeaking(false); };
-    const onSpeechStart = () => setAiSpeaking(true);
-    const onSpeechEnd = () => setAiSpeaking(false);
-    const onError = (e: unknown) => {
-      const msg = e instanceof Error ? e.message : (typeof e === 'object' && e && 'message' in e ? String((e as any).message) : 'Call failed. Please try again.');
+  // Lazily create one Retell web client and wire its events.
+  function getClient(): RetellWebClient {
+    if (clientRef.current) return clientRef.current;
+    const client = new RetellWebClient();
+    client.on('call_started', () => { setState('active'); setErrMsg(''); });
+    client.on('call_ended', () => { setState('ended'); setAiSpeaking(false); });
+    client.on('agent_start_talking', () => setAiSpeaking(true));
+    client.on('agent_stop_talking', () => setAiSpeaking(false));
+    client.on('error', (e: unknown) => {
+      const msg = e instanceof Error ? e.message
+        : (typeof e === 'object' && e && 'message' in e ? String((e as any).message) : 'Call failed. Please try again.');
       setErrMsg(msg);
       setState('error');
       setAiSpeaking(false);
-    };
-
-    vapi.on('call-start', onStart);
-    vapi.on('call-end', onEnd);
-    vapi.on('speech-start', onSpeechStart);
-    vapi.on('speech-end', onSpeechEnd);
-    vapi.on('error', onError);
-
-    return () => {
-      vapi.off('call-start', onStart);
-      vapi.off('call-end', onEnd);
-      vapi.off('speech-start', onSpeechStart);
-      vapi.off('speech-end', onSpeechEnd);
-      vapi.off('error', onError);
-    };
-  }, []);
+      try { client.stopCall(); } catch { /* noop */ }
+    });
+    clientRef.current = client;
+    return client;
+  }
 
   // Call-duration timer.
   useEffect(() => {
@@ -73,33 +63,33 @@ export default function VapiCallButton({ assistantId, variant = 'card', classNam
   }, [state]);
 
   // Stop the call if the component unmounts mid-call.
-  useEffect(() => () => { getVapi()?.stop().catch(() => {}); }, []);
+  useEffect(() => () => { try { clientRef.current?.stopCall(); } catch { /* noop */ } }, []);
 
   async function startCall() {
-    const vapi = getVapi();
-    if (!vapi || !id) { setErrMsg('Voice assistant is not configured yet.'); setState('error'); return; }
     setState('connecting');
     setErrMsg('');
     try {
-      await vapi.start(id);
-      // 'call-start' event flips state to 'active'
-    } catch (e) {
-      setErrMsg(e instanceof Error ? e.message : 'Could not start the call. Allow mic access and try again.');
+      // 1) Get a short-lived access token from our backend (keeps the API key server-side).
+      const { data } = await api.post('/retell/web-call', locationId ? { locationId } : {});
+      if (!data?.accessToken) throw new Error('Voice assistant is not available right now.');
+      // 2) Join the call.
+      await getClient().startCall({ accessToken: data.accessToken });
+      // 'call_started' flips state to 'active'
+    } catch (e: any) {
+      const apiMsg = e?.response?.data?.error;
+      setErrMsg(apiMsg || (e instanceof Error ? e.message : 'Could not start the call. Allow mic access and try again.'));
       setState('error');
     }
   }
 
   function endCall() {
-    getVapi()?.stop().catch(() => {});
+    try { clientRef.current?.stopCall(); } catch { /* noop */ }
     setState('ended');
   }
 
   function fmt(s: number) {
     return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
   }
-
-  // Unconfigured build — render nothing (callers can show phone-only).
-  if (!isVapiConfigured) return null;
 
   const inCall = state === 'connecting' || state === 'active';
 
