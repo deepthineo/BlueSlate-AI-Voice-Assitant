@@ -12,7 +12,7 @@
 
 // The AI receptionist phone number, shown for click-to-call across the app.
 export const RETELL_PHONE =
-  ((import.meta.env.VITE_RETELL_PHONE as string | undefined)?.trim()) || '+1 945 223 1301';
+  ((import.meta.env.VITE_RETELL_PHONE as string | undefined)?.trim()) || '+1 570 747 4386';
 
 // `tel:` href — strips spaces/symbols, keeps leading +.
 export const RETELL_PHONE_HREF = `tel:${RETELL_PHONE.replace(/[^\d+]/g, '')}`;
