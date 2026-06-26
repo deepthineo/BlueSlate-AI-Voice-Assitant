@@ -28,8 +28,10 @@ export default function RetellCallButton({ locationId, variant = 'card', classNa
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [errMsg, setErrMsg] = useState('');
   const [seconds, setSeconds] = useState(0);
+  const [transcript, setTranscript] = useState<Array<{ role: string; content: string }>>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const clientRef = useRef<RetellWebClient | null>(null);
+  const transcriptEndRef = useRef<HTMLDivElement | null>(null);
 
   // Lazily create one Retell web client and wire its events.
   function getClient(): RetellWebClient {
@@ -39,6 +41,17 @@ export default function RetellCallButton({ locationId, variant = 'card', classNa
     client.on('call_ended', () => { setState('ended'); setAiSpeaking(false); });
     client.on('agent_start_talking', () => setAiSpeaking(true));
     client.on('agent_stop_talking', () => setAiSpeaking(false));
+    // Live transcript — Retell sends the rolling conversation (last few lines).
+    client.on('update', (update: any) => {
+      const t = update?.transcript;
+      if (Array.isArray(t)) {
+        setTranscript(
+          t
+            .filter((u: any) => u && typeof u.content === 'string' && u.content.trim())
+            .map((u: any) => ({ role: u.role === 'agent' ? 'agent' : 'user', content: u.content }))
+        );
+      }
+    });
     client.on('error', (e: unknown) => {
       const msg = e instanceof Error ? e.message
         : (typeof e === 'object' && e && 'message' in e ? String((e as any).message) : 'Call failed. Please try again.');
@@ -65,9 +78,15 @@ export default function RetellCallButton({ locationId, variant = 'card', classNa
   // Stop the call if the component unmounts mid-call.
   useEffect(() => () => { try { clientRef.current?.stopCall(); } catch { /* noop */ } }, []);
 
+  // Keep the transcript scrolled to the latest line.
+  useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [transcript]);
+
   async function startCall() {
     setState('connecting');
     setErrMsg('');
+    setTranscript([]);
     try {
       // 1) Get a short-lived access token from our backend (keeps the API key server-side).
       const { data } = await api.post('/retell/web-call', locationId ? { locationId } : {});
@@ -138,6 +157,27 @@ export default function RetellCallButton({ locationId, variant = 'card', classNa
           <p className="text-xs text-gray-500 mt-1">Free, no signup. Works on phone &amp; desktop.</p>
         )}
       </div>
+
+      {/* Live transcript — appears during/after the call */}
+      {(inCall || transcript.length > 0) && (
+        <div className="w-full max-w-[20rem] mt-2 rounded-xl border border-white/10 bg-black/30 p-3 text-left max-h-44 overflow-y-auto">
+          {transcript.length === 0 ? (
+            <p className="text-[11px] text-gray-500 italic">Transcript will appear here as you talk…</p>
+          ) : (
+            <div className="space-y-1.5">
+              {transcript.map((t, i) => (
+                <div key={i} className="text-xs leading-snug">
+                  <span className={t.role === 'agent' ? 'text-purple-300 font-semibold' : 'text-emerald-300 font-semibold'}>
+                    {t.role === 'agent' ? 'Alex' : 'You'}:
+                  </span>{' '}
+                  <span className="text-gray-200">{t.content}</span>
+                </div>
+              ))}
+              <div ref={transcriptEndRef} />
+            </div>
+          )}
+        </div>
+      )}
 
       {(state === 'ended' || state === 'error') && (
         <button onClick={startCall} className="text-xs text-purple-400 hover:text-purple-300 underline underline-offset-2">
