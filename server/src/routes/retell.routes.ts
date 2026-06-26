@@ -75,6 +75,10 @@ router.post('/webhook', async (req: Request, res: Response) => {
       start_timestamp?: number;
       recording_url?: string;
       transcript?: string;
+      direction?: 'inbound' | 'outbound';
+      from_number?: string;
+      metadata?: Record<string, string>;
+      retell_llm_dynamic_variables?: Record<string, string>;
     };
   };
 
@@ -87,6 +91,8 @@ router.post('/webhook', async (req: Request, res: Response) => {
     call.duration_ms ??
     (call.end_timestamp && call.start_timestamp ? call.end_timestamp - call.start_timestamp : undefined);
 
+  const locationId = call.metadata?.locationId || call.retell_llm_dynamic_variables?.locationId;
+
   try {
     await finalizeRetellCall({
       retellCallId: call.call_id,
@@ -94,6 +100,9 @@ router.post('/webhook', async (req: Request, res: Response) => {
       durationMs,
       recordingUrl: call.recording_url,
       transcript: call.transcript,
+      locationId,
+      fromNumber: call.from_number,
+      direction: call.direction,
     });
   } catch (err) {
     console.error('[Retell webhook] finalize error:', err instanceof Error ? err.message : err);

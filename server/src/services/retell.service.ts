@@ -25,6 +25,7 @@ import { supabase } from '../config/supabase';
 import { generateVoiceResponse, extractLeadFromTranscript, summarizeCall } from './ai.service';
 import { getActiveKnowledgeBase, buildKnowledgeContextString, isKnowledgeBaseUsable } from './knowledge.service';
 import { BLUESLATE_KNOWLEDGE_CONTEXT, buildBlueslateSystemPrompt } from './blueslateKnowledge';
+import { notifyNewLead } from './email.service';
 import type { Location } from '../types';
 
 const DEMO_LOCATION_ID = 'b0000000-0000-0000-0000-000000000001';
@@ -346,8 +347,13 @@ export async function finalizeRetellCall(params: {
   durationMs?: number;
   recordingUrl?: string;
   transcript?: string;
+  // Path-B (Retell-hosted) browser/phone calls never hit our WS handler, so no
+  // calls row exists yet. The webhook carries enough to create one here.
+  locationId?: string;
+  fromNumber?: string;
+  direction?: 'inbound' | 'outbound';
 }): Promise<void> {
-  const { retellCallId, status, durationMs, recordingUrl, transcript } = params;
+  const { retellCallId, status, durationMs, recordingUrl, transcript, locationId, fromNumber, direction } = params;
   const sid = `retell_${retellCallId}`;
 
   const mapped = status === 'ended' || status === 'completed' ? 'completed'
@@ -355,16 +361,39 @@ export async function finalizeRetellCall(params: {
     : status === 'error' || status === 'failed' ? 'failed'
     : 'completed';
 
+  // Resolve the location (passed via webhook metadata, else demo location).
+  let resolvedLocationId = locationId ?? null;
+  let orgId: string | null = null;
+  if (resolvedLocationId) {
+    const { data: loc } = await supabase.from('locations').select('id, org_id').eq('id', resolvedLocationId).single();
+    orgId = loc?.org_id ?? null;
+    if (!loc) resolvedLocationId = null;
+  }
+  if (!resolvedLocationId) {
+    const { data: loc } = await supabase.from('locations').select('id, org_id').eq('id', DEMO_LOCATION_ID).single();
+    resolvedLocationId = loc?.id ?? null;
+    orgId = loc?.org_id ?? null;
+  }
+
+  // Upsert the call row (create if Path-B never made one; update if it exists).
   const { data: call } = await supabase
     .from('calls')
-    .update({
-      status: mapped,
-      duration_sec: durationMs ? Math.round(durationMs / 1000) : undefined,
-      ended_at: new Date().toISOString(),
-      recording_url: recordingUrl ?? null,
-      transcript: transcript ?? undefined,
-    })
-    .eq('twilio_call_sid', sid)
+    .upsert(
+      {
+        twilio_call_sid: sid,
+        location_id: resolvedLocationId,
+        org_id: orgId,
+        from_number: fromNumber ?? 'browser',
+        to_number: 'retell',
+        direction: direction ?? 'inbound',
+        status: mapped,
+        duration_sec: durationMs ? Math.round(durationMs / 1000) : undefined,
+        ended_at: new Date().toISOString(),
+        recording_url: recordingUrl ?? null,
+        transcript: transcript ?? undefined,
+      },
+      { onConflict: 'twilio_call_sid' }
+    )
     .select('id, location_id, org_id, from_number')
     .single();
 
@@ -423,6 +452,17 @@ export async function finalizeRetellCall(params: {
         raw_extraction: extraction,
       });
       console.log(`[Retell Loop C] ✓ Lead saved — "${extraction.caller_name ?? 'unknown'}" | ${outcome} | score ${score}`);
+
+      // Email the owner about the new lead (no-ops if Resend isn't configured).
+      void notifyNewLead({
+        name: extraction.caller_name,
+        phone: extraction.phone ?? call.from_number,
+        email: extraction.email,
+        interest: extraction.core_interest,
+        outcome,
+        score,
+        summary,
+      });
     } catch (err) {
       console.error('[Retell Loop C] failed:', err instanceof Error ? err.message : err);
     }

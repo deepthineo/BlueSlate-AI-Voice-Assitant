@@ -42,6 +42,14 @@ const envSchema = z.object({
   // ElevenLabs — optional, free at elevenlabs.io (human voice for demo widget)
   ELEVENLABS_API_KEY: z.string().optional(),
 
+  // Resend — optional, free at resend.com (100 emails/day). Sends a notification
+  // email when a new lead is captured. If absent, email notifications are skipped.
+  RESEND_API_KEY: z.string().optional(),
+  // Where lead-alert emails are sent (defaults to the app owner's address).
+  NOTIFY_EMAIL: z.string().email().optional(),
+  // Verified "from" address in Resend (defaults to Resend's onboarding sender).
+  NOTIFY_FROM_EMAIL: z.string().default('BlueSlate <onboarding@resend.dev>'),
+
   // App URLs
   SERVER_URL: z.string().url().default('http://localhost:3001'),
   CLIENT_URL: z.string().url().default('http://localhost:5173'),
