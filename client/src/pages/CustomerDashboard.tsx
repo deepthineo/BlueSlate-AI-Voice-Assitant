@@ -6,6 +6,8 @@ import {
   ChevronDown, MessageCircle, LogOut, Loader2, AlertCircle,
 } from 'lucide-react';
 
+import RetellCallButton from '../components/RetellCallButton';
+
 // Use `|| '/api'` (not `??`): VITE_API_URL is "" in dev, which `??` won't catch.
 const API_BASE = ((import.meta.env.VITE_API_URL as string | undefined)?.trim() || '/api');
 
@@ -212,75 +214,21 @@ export default function CustomerDashboard() {
             )}
           </div>
 
-          {/* Chat window */}
-          <div className="flex-1 flex flex-col rounded-2xl overflow-hidden"
+          {/* Live voice call — talk to the selected franchise's AI by voice */}
+          <div className="flex-1 flex flex-col items-center justify-center rounded-2xl p-8"
             style={{ background: '#0e0e16', border: '1px solid rgba(255,255,255,0.08)', minHeight: '380px' }}>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ maxHeight: '380px' }}>
-              {messages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className="max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
-                    style={msg.role === 'user'
-                      ? { background: 'linear-gradient(135deg, #7c3aed, #9333ea)', color: '#fff' }
-                      : { background: 'rgba(255,255,255,0.05)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.07)' }}>
-                    {msg.role === 'assistant' && (
-                      <p className="text-[10px] font-semibold text-purple-400 mb-1">
-                        {selected?.agentName ?? 'AI'} · {selected?.name ?? 'Franchise'}
-                      </p>
-                    )}
-                    {msg.content}
-                  </div>
-                </div>
-              ))}
-              {chatLoading && (
-                <div className="flex justify-start">
-                  <div className="px-4 py-2.5 rounded-2xl flex items-center gap-2"
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                    <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin" />
-                    <span className="text-xs text-gray-400">Typing…</span>
-                  </div>
-                </div>
-              )}
-              <div ref={bottomRef} />
-            </div>
-
-            {/* Input */}
-            <form onSubmit={sendMessage}
-              className="flex gap-2 p-3"
-              style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              <input
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                disabled={!selectedId || chatLoading}
-                placeholder={selectedId ? `Ask ${selected?.agentName ?? 'the AI'} anything…` : 'Select a franchise first'}
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm text-white placeholder-gray-600 outline-none"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-              />
-              <button
-                type="submit"
-                disabled={!input.trim() || !selectedId || chatLoading}
-                className="px-4 py-2.5 rounded-xl flex items-center gap-1.5 text-sm font-semibold text-white transition-all disabled:opacity-40"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)' }}>
-                <Send className="w-4 h-4" />
-              </button>
-            </form>
+            {selectedId ? (
+              <>
+                <p className="text-sm text-gray-400 mb-5 text-center max-w-xs">
+                  Talk live with <span className="text-white font-semibold">{selected?.agentName ?? 'the AI'}</span>
+                  {selected?.name ? <> at <span className="text-white font-semibold">{selected.name}</span></> : null} — free, right in your browser.
+                </p>
+                <RetellCallButton locationId={selectedId} />
+              </>
+            ) : (
+              <p className="text-sm text-gray-500 text-center">Select a franchise above to talk to its AI.</p>
+            )}
           </div>
-
-          {/* Suggested questions */}
-          {selected && messages.length <= 1 && (
-            <div className="flex flex-wrap gap-2">
-              {['What programs do you offer?', 'What are your hours?', 'How much does it cost?', 'How do I book a trial?'].map((q) => (
-                <button key={q} onClick={() => { setInput(q); inputRef.current?.focus(); }}
-                  className="text-xs px-3 py-1.5 rounded-full text-purple-300 transition-colors hover:bg-purple-900/30"
-                  style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}>
-                  {q}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* ── Right column: Inquiry status ────────────────────── */}

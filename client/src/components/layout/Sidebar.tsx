@@ -1,8 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { useState, useRef, useEffect } from 'react';
 import {
   LayoutDashboard, Phone, Users, Brain, BarChart3,
-  Settings, PhoneCall, Zap, Plus, ChevronDown, Check, PhoneOutgoing, LogOut, Building2,
+  Settings, PhoneCall, Zap, PhoneOutgoing, LogOut, Building2,
 } from 'lucide-react';
 import { useClerk } from '@clerk/clerk-react';
 import { useLocationStore } from '../../hooks/useLocation';
@@ -20,22 +19,9 @@ const navItems = [
 ];
 
 export default function Sidebar() {
-  const { currentLocation, locations, setCurrentLocation } = useLocationStore();
+  const { currentLocation } = useLocationStore();
   const { pathname } = useLocation();
   const clerk = useClerk();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
 
   function isActive(item: typeof navItems[0]) {
     return item.exact ? pathname === item.to : pathname.startsWith(item.to);
@@ -66,50 +52,17 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Custom dark location dropdown */}
-      {currentLocation && locations.length > 0 && (
-        <div className="relative z-20 px-3 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }} ref={dropdownRef}>
-          <div className="flex items-center gap-1">
-            {/* Trigger */}
-            <button
-              onClick={() => setDropdownOpen((o) => !o)}
-              className="flex-1 flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-300 transition-colors"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-            >
-              <span className="truncate">{currentLocation.name}</span>
-              <ChevronDown className={`w-3 h-3 flex-shrink-0 text-slate-500 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {/* Configure → Settings */}
-            <NavLink
-              to="/settings"
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-slate-600 hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
-              title="Rename / configure in Settings"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </NavLink>
-          </div>
-
-          {/* Dropdown list */}
-          {dropdownOpen && (
-            <div
-              className="absolute left-3 right-3 top-full mt-1 rounded-xl overflow-hidden z-50 shadow-xl"
-              style={{ background: '#1a1a26', border: '1px solid rgba(255,255,255,0.1)' }}
-            >
-              {locations.map((loc) => (
-                <button
-                  key={loc.id}
-                  onClick={() => { setCurrentLocation(loc); setDropdownOpen(false); }}
-                  className="w-full flex items-center justify-between px-3 py-2.5 text-xs text-left transition-colors hover:bg-white/[0.06]"
-                  style={{ color: loc.id === currentLocation.id ? '#a78bfa' : '#94a3b8' }}
-                >
-                  <span className="truncate">{loc.name}</span>
-                  {loc.id === currentLocation.id && <Check className="w-3 h-3 flex-shrink-0" />}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Active franchise label (switching happens on the Franchises page) */}
+      {currentLocation && (
+        <NavLink
+          to="/franchises"
+          className="relative z-20 px-3 py-2 flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+          title="Manage franchises"
+        >
+          <Building2 className="w-3.5 h-3.5 text-brand-400 flex-shrink-0" />
+          <span className="truncate">{currentLocation.name}</span>
+        </NavLink>
       )}
 
       {/* Nav */}

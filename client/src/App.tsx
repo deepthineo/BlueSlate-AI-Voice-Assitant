@@ -129,7 +129,7 @@ function AppLayout() {
   // Not signed in → show public landing page
   if (!isSignedIn) return <Landing />;
 
-  // No franchise set up → let user choose their path (owner or customer)
+  // No franchise set up → first-time owners go through onboarding (enter URL).
   if (locations.length === 0) return <PathChooser />;
 
   return (
