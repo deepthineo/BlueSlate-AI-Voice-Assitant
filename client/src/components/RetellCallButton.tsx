@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Mic, PhoneOff, Loader2, Phone } from 'lucide-react';
 import { RetellWebClient } from 'retell-client-js-sdk';
 import api from '../lib/api';
-import { VOICE_OPTIONS, DEFAULT_VOICE } from '../lib/voiceOptions';
+import { VOICE_OPTIONS, DEFAULT_VOICE, LANGUAGES, voicesForLanguage } from '../lib/voiceOptions';
 
 // ──────────────────────────────────────────────────────────────
 // "Talk to AI" — starts an in-browser voice conversation with the
@@ -32,8 +32,12 @@ export default function RetellCallButton({ locationId, variant = 'card', showVoi
   const [errMsg, setErrMsg] = useState('');
   const [seconds, setSeconds] = useState(0);
   const [transcript, setTranscript] = useState<Array<{ role: string; content: string }>>([]);
-  const [voiceId, setVoiceId] = useState(DEFAULT_VOICE.id);
-  const selectedVoice = VOICE_OPTIONS.find((v) => v.id === voiceId) ?? DEFAULT_VOICE;
+  const [language, setLanguage] = useState(DEFAULT_VOICE.language);
+  const [gender, setGender] = useState<'female' | 'male'>(DEFAULT_VOICE.gender);
+  // Derive the chosen voice from language + gender (fall back within the language).
+  const langVoices = voicesForLanguage(language);
+  const selectedVoice =
+    langVoices.find((v) => v.gender === gender) ?? langVoices[0] ?? DEFAULT_VOICE;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const clientRef = useRef<RetellWebClient | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
@@ -138,29 +142,44 @@ export default function RetellCallButton({ locationId, variant = 'card', showVoi
   // ── Card variant (default) ──
   return (
     <div className={`flex flex-col items-center gap-3 text-center ${className}`}>
-      {/* Voice / name / language picker — only before the call starts */}
+      {/* Language + voice picker — only before the call starts */}
       {showVoicePicker && (state === 'idle' || state === 'ended') && (
-        <div className="w-full max-w-[20rem] mb-1">
-          <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">Choose your AI</p>
-          <div className="grid grid-cols-2 gap-2">
-            {VOICE_OPTIONS.map((v) => {
-              const active = v.id === voiceId;
-              return (
-                <button
-                  key={v.id}
-                  onClick={() => setVoiceId(v.id)}
-                  className={`rounded-xl border px-3 py-2 text-left transition-all ${active ? 'border-purple-500 bg-purple-500/15' : 'border-white/10 hover:border-white/25 bg-black/20'}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-white">{v.name}</span>
-                    <span className="text-xs">{v.flag}</span>
-                  </div>
-                  <div className="text-[11px] text-gray-400">
-                    {v.gender === 'female' ? '♀ Female' : '♂ Male'} · {v.language}
-                  </div>
-                </button>
-              );
-            })}
+        <div className="w-full max-w-[20rem] mb-1 space-y-3">
+          {/* Language dropdown */}
+          <div className="text-left">
+            <label className="text-[11px] uppercase tracking-wide text-gray-500">Language</label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white focus:border-purple-500 focus:outline-none"
+            >
+              {LANGUAGES.map((lang) => {
+                const flag = VOICE_OPTIONS.find((o) => o.language === lang)?.flag ?? '';
+                return <option key={lang} value={lang} className="bg-gray-900">{flag} {lang}</option>;
+              })}
+            </select>
+          </div>
+
+          {/* Female / Male toggle */}
+          <div className="text-left">
+            <label className="text-[11px] uppercase tracking-wide text-gray-500">Voice</label>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              {(['female', 'male'] as const).map((g) => {
+                const opt = langVoices.find((v) => v.gender === g);
+                const active = gender === g;
+                return (
+                  <button
+                    key={g}
+                    onClick={() => setGender(g)}
+                    disabled={!opt}
+                    className={`rounded-xl border px-3 py-2 text-sm font-semibold transition-all ${active ? 'border-purple-500 bg-purple-500/15 text-white' : 'border-white/10 hover:border-white/25 bg-black/20 text-gray-300'} ${!opt ? 'opacity-40 cursor-not-allowed' : ''}`}
+                  >
+                    {g === 'female' ? '♀ Female' : '♂ Male'}
+                    {opt && <span className="block text-[11px] font-normal text-gray-400">{opt.name}</span>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
