@@ -34,7 +34,11 @@ export async function createOutboundCall(params: {
   const fromNumber = env.RETELL_FROM_NUMBER || location.phone_number;
   if (!fromNumber) throw new Error('No Retell from-number configured (set RETELL_FROM_NUMBER or location.phone_number)');
 
-  const dynamicVars: Record<string, string> = { locationId, direction: 'outbound' };
+  const dynamicVars: Record<string, string> = {
+    locationId,
+    direction: 'outbound',
+    agent_name: location.ai_config?.agent_name?.trim() || 'Alex',
+  };
   if (leadId) dynamicVars.leadId = leadId;
   if (context) dynamicVars.context = context.substring(0, 500);
 
@@ -78,12 +82,22 @@ export async function createWebCall(params: {
   callerName?: string;
   /** Optional Retell agent override (voice/language picker). Falls back to default. */
   agentId?: string;
+  /** Owner's chosen AI name; injected as {{agent_name}} in the Retell prompt. */
+  agentName?: string;
 }): Promise<{ accessToken: string; callId: string }> {
-  const { locationId, callerName, agentId } = params;
+  const { locationId, callerName, agentId, agentName } = params;
   const useAgentId = agentId?.trim() || env.RETELL_AGENT_ID;
   if (!useAgentId) throw new Error('RETELL_AGENT_ID not configured');
 
-  const dynamicVars: Record<string, string> = { direction: 'inbound' };
+  // Resolve the AI's name: explicit > the location's configured name > default.
+  let resolvedName = agentName?.trim() || '';
+  if (!resolvedName && locationId) {
+    const loc = await getLocationById(locationId);
+    resolvedName = loc?.ai_config?.agent_name?.trim() || '';
+  }
+  if (!resolvedName) resolvedName = 'Alex';
+
+  const dynamicVars: Record<string, string> = { direction: 'inbound', agent_name: resolvedName };
   if (locationId) dynamicVars.locationId = locationId;
   if (callerName) dynamicVars.callerName = callerName;
 
