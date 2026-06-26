@@ -374,9 +374,13 @@ export async function finalizeRetellCall(params: {
     resolvedLocationId = loc?.id ?? null;
     orgId = loc?.org_id ?? null;
   }
+  if (!resolvedLocationId || !orgId) {
+    console.error(`[Retell finalize] cannot resolve location/org (locId=${resolvedLocationId}, orgId=${orgId}) — check the demo location row exists with an org_id. Skipping.`);
+    return;
+  }
 
   // Upsert the call row (create if Path-B never made one; update if it exists).
-  const { data: call } = await supabase
+  const { data: call, error: upsertErr } = await supabase
     .from('calls')
     .upsert(
       {
@@ -397,7 +401,10 @@ export async function finalizeRetellCall(params: {
     .select('id, location_id, org_id, from_number')
     .single();
 
-  if (!call) { console.log('[Retell finalize] no call row (upsert failed) for', sid); return; }
+  if (upsertErr || !call) {
+    console.error('[Retell finalize] upsert failed for', sid, '—', upsertErr?.message, '| details:', upsertErr?.details, '| hint:', upsertErr?.hint, '| code:', upsertErr?.code);
+    return;
+  }
   if (mapped !== 'completed') { console.log(`[Retell finalize] status=${mapped} (not completed) — waiting for completed event`); return; }
 
   // Build transcript from stored turns if Retell didn't supply one.
