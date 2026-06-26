@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import {
   LayoutDashboard, Phone, Users, Brain, BarChart3,
-  Settings, PhoneCall, Zap, Plus, ChevronDown, Check, PhoneOutgoing, LogOut,
+  Settings, PhoneCall, Zap, Plus, ChevronDown, Check, PhoneOutgoing, LogOut, Building2,
 } from 'lucide-react';
 import { useClerk } from '@clerk/clerk-react';
 import { useLocationStore } from '../../hooks/useLocation';
@@ -10,6 +10,7 @@ import { cn } from '../../lib/utils';
 
 const navItems = [
   { to: '/',           icon: LayoutDashboard, label: 'Dashboard',      exact: true },
+  { to: '/franchises', icon: Building2,       label: 'Franchises',     exact: false },
   { to: '/campaigns',  icon: PhoneOutgoing,   label: 'Outbound Calls', exact: false },
   { to: '/live-call',  icon: PhoneCall,       label: 'Live Call',      exact: false },
   { to: '/calls',      icon: Phone,           label: 'Call History',   exact: false },

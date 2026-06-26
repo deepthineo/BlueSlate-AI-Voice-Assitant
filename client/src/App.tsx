@@ -11,6 +11,7 @@ import Knowledge from './pages/Knowledge';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import LiveCall from './pages/LiveCall';
+import Franchises from './pages/Franchises';
 import Campaigns from './pages/Campaigns';
 import Landing from './pages/Landing';
 import Onboarding from './pages/Onboarding';
@@ -138,6 +139,7 @@ function AppLayout() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/franchises" element={<Franchises />} />
           <Route path="/campaigns" element={<Campaigns />} />
           <Route path="/calls" element={<Calls />} />
           <Route path="/leads" element={<Leads />} />

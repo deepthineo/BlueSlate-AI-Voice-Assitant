@@ -26,7 +26,7 @@ const v = (key: string) => (env[key as keyof ImportMetaEnv] as string | undefine
 
 export const VOICE_OPTIONS: VoiceOption[] = [
   // ── English (US) — default, works today ──
-  { id: 'alex-female-en', name: 'Alex', gender: 'female', language: 'English (US)', langCode: 'en-US', agentId: v('VITE_RETELL_AGENT_ALEX_EN'), flag: '🇺🇸' },
+  { id: 'sara-female-en', name: 'Sara', gender: 'female', language: 'English (US)', langCode: 'en-US', agentId: v('VITE_RETELL_AGENT_ALEX_EN'), flag: '🇺🇸' },
   { id: 'sam-male-en',    name: 'Sam',  gender: 'male',   language: 'English (US)', langCode: 'en-US', agentId: v('VITE_RETELL_AGENT_SAM_EN'),  flag: '🇺🇸' },
 
   // ── Spanish — needs a Spanish Retell agent to truly speak Spanish ──
