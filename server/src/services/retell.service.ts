@@ -25,7 +25,7 @@ import { supabase } from '../config/supabase';
 import { generateVoiceResponse, extractLeadFromTranscript, summarizeCall } from './ai.service';
 import { getActiveKnowledgeBase, buildKnowledgeContextString, isKnowledgeBaseUsable } from './knowledge.service';
 import { BLUESLATE_KNOWLEDGE_CONTEXT, buildBlueslateSystemPrompt } from './blueslateKnowledge';
-import { notifyNewLead } from './email.service';
+import { notifyNewLead, notifyAbandonedCall } from './email.service';
 import type { Location } from '../types';
 
 const DEMO_LOCATION_ID = 'b0000000-0000-0000-0000-000000000001';
@@ -424,6 +424,16 @@ export async function finalizeRetellCall(params: {
         summarizeCall(finalTranscript),
       ]);
       await supabase.from('calls').update({ summary, sentiment_score: sentimentScore }).eq('id', call.id);
+
+      // Abandoned / no-info call: caller talked to the AI but left no contact details.
+      // Notify the owner (closest real equivalent to a "missed" caller) and skip lead insert.
+      const hasContact = Boolean(extraction.caller_name || extraction.email ||
+        (extraction.phone && extraction.phone !== call.from_number) || call.from_number !== 'browser');
+      if (!hasContact) {
+        void notifyAbandonedCall({ summary, transcript: finalTranscript });
+        console.log('[Retell Loop C] Abandoned/no-info call — owner notified, no lead saved.');
+        return;
+      }
 
       let score = 30;
       const outcome = extraction.call_outcome;

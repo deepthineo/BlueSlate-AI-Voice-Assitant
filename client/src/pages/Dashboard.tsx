@@ -100,6 +100,26 @@ export default function Dashboard() {
       <TopBar title="Dashboard" subtitle="XP League Frisco — real-time overview" />
 
       <div className="flex-1 overflow-auto p-6 space-y-6">
+        {/* Talk to your AI — quick entry to the live voice assistant */}
+        <a
+          href="/live-call"
+          className="flex items-center justify-between gap-4 rounded-2xl p-5 border transition-all hover:scale-[1.01]"
+          style={{ borderColor: 'rgba(124,58,237,0.4)', background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(147,51,234,0.06))' }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)' }}>
+              <Phone className="w-6 h-6 text-white fill-white" />
+            </div>
+            <div>
+              <p className="text-white font-bold">Talk to your AI receptionist</p>
+              <p className="text-sm text-gray-400">Test it live in your browser — free, no phone needed.</p>
+            </div>
+          </div>
+          <span className="hidden sm:flex items-center gap-1 text-purple-300 font-semibold text-sm">
+            Start <ArrowUpRight className="w-4 h-4" />
+          </span>
+        </a>
+
         {/* KPI cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {kpis.map((kpi) => (
