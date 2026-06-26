@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Mic, PhoneOff, Loader2, Phone } from 'lucide-react';
 import { RetellWebClient } from 'retell-client-js-sdk';
 import api from '../lib/api';
+import { VOICE_OPTIONS, DEFAULT_VOICE } from '../lib/voiceOptions';
 
 // ──────────────────────────────────────────────────────────────
 // "Talk to AI" — starts an in-browser voice conversation with the
@@ -20,15 +21,19 @@ interface Props {
   locationId?: string;
   /** Compact pill vs. full card. */
   variant?: 'card' | 'pill';
+  /** Show the AI name/voice/language picker (card variant only). */
+  showVoicePicker?: boolean;
   className?: string;
 }
 
-export default function RetellCallButton({ locationId, variant = 'card', className = '' }: Props) {
+export default function RetellCallButton({ locationId, variant = 'card', showVoicePicker = false, className = '' }: Props) {
   const [state, setState] = useState<CallState>('idle');
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [errMsg, setErrMsg] = useState('');
   const [seconds, setSeconds] = useState(0);
   const [transcript, setTranscript] = useState<Array<{ role: string; content: string }>>([]);
+  const [voiceId, setVoiceId] = useState(DEFAULT_VOICE.id);
+  const selectedVoice = VOICE_OPTIONS.find((v) => v.id === voiceId) ?? DEFAULT_VOICE;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const clientRef = useRef<RetellWebClient | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
@@ -89,7 +94,10 @@ export default function RetellCallButton({ locationId, variant = 'card', classNa
     setTranscript([]);
     try {
       // 1) Get a short-lived access token from our backend (keeps the API key server-side).
-      const { data } = await api.post('/retell/web-call', locationId ? { locationId } : {});
+      const body: Record<string, string> = {};
+      if (locationId) body.locationId = locationId;
+      if (selectedVoice.agentId) body.agentId = selectedVoice.agentId;
+      const { data } = await api.post('/retell/web-call', body);
       if (!data?.accessToken) throw new Error('Voice assistant is not available right now.');
       // 2) Join the call.
       await getClient().startCall({ accessToken: data.accessToken });
@@ -130,6 +138,33 @@ export default function RetellCallButton({ locationId, variant = 'card', classNa
   // ── Card variant (default) ──
   return (
     <div className={`flex flex-col items-center gap-3 text-center ${className}`}>
+      {/* Voice / name / language picker — only before the call starts */}
+      {showVoicePicker && (state === 'idle' || state === 'ended') && (
+        <div className="w-full max-w-[20rem] mb-1">
+          <p className="text-[11px] uppercase tracking-wide text-gray-500 mb-2">Choose your AI</p>
+          <div className="grid grid-cols-2 gap-2">
+            {VOICE_OPTIONS.map((v) => {
+              const active = v.id === voiceId;
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => setVoiceId(v.id)}
+                  className={`rounded-xl border px-3 py-2 text-left transition-all ${active ? 'border-purple-500 bg-purple-500/15' : 'border-white/10 hover:border-white/25 bg-black/20'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-white">{v.name}</span>
+                    <span className="text-xs">{v.flag}</span>
+                  </div>
+                  <div className="text-[11px] text-gray-400">
+                    {v.gender === 'female' ? '♀ Female' : '♂ Male'} · {v.language}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Mic orb */}
       <button onClick={inCall ? endCall : startCall} aria-label={inCall ? 'End call' : 'Talk to AI'}
         className="relative w-20 h-20 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"

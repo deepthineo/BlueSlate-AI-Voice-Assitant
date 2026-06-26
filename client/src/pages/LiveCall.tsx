@@ -52,7 +52,7 @@ export default function LiveCall() {
           </p>
 
           {/* Same Retell call experience as the public demo, bound to this location's KB */}
-          <RetellCallButton locationId={currentLocation?.id} />
+          <RetellCallButton locationId={currentLocation?.id} showVoicePicker />
 
           {locationLoading && <p className="text-xs text-gray-500">Loading your location…</p>}
         </div>

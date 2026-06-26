@@ -76,9 +76,12 @@ export async function createOutboundCall(params: {
 export async function createWebCall(params: {
   locationId?: string;
   callerName?: string;
+  /** Optional Retell agent override (voice/language picker). Falls back to default. */
+  agentId?: string;
 }): Promise<{ accessToken: string; callId: string }> {
-  const { locationId, callerName } = params;
-  if (!env.RETELL_AGENT_ID) throw new Error('RETELL_AGENT_ID not configured');
+  const { locationId, callerName, agentId } = params;
+  const useAgentId = agentId?.trim() || env.RETELL_AGENT_ID;
+  if (!useAgentId) throw new Error('RETELL_AGENT_ID not configured');
 
   const dynamicVars: Record<string, string> = { direction: 'inbound' };
   if (locationId) dynamicVars.locationId = locationId;
@@ -87,7 +90,7 @@ export async function createWebCall(params: {
   const resp = await axios.post(
     `${RETELL_BASE}/v2/create-web-call`,
     {
-      agent_id: env.RETELL_AGENT_ID,
+      agent_id: useAgentId,
       retell_llm_dynamic_variables: dynamicVars,
       ...(locationId ? { metadata: { locationId } } : {}),
     },

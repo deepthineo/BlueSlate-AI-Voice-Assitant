@@ -19,11 +19,12 @@ const webCallLimiter = rateLimit({
 });
 
 router.post('/web-call', webCallLimiter, async (req: Request, res: Response) => {
-  const { locationId, callerName } = req.body as { locationId?: string; callerName?: string };
+  const { locationId, callerName, agentId } = req.body as { locationId?: string; callerName?: string; agentId?: string };
   try {
     const { accessToken, callId } = await createWebCall({
       locationId: locationId || DEMO_LOCATION_ID,
       callerName,
+      agentId,
     });
     res.json({ accessToken, callId });
   } catch (err) {
