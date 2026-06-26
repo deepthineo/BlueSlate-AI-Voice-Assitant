@@ -11,8 +11,11 @@
 // ──────────────────────────────────────────────────────────────
 
 // The AI receptionist phone number, shown for click-to-call across the app.
+// This is the live Vapi-hosted number — anyone can dial it and the Vapi AI answers
+// (Vapi's free trial includes a real callable number; Retell does not). The in-browser
+// "Talk to AI" button still uses Retell; only the dial-in number is Vapi.
 export const RETELL_PHONE =
-  ((import.meta.env.VITE_RETELL_PHONE as string | undefined)?.trim()) || '+1 570 747 4386';
+  ((import.meta.env.VITE_RETELL_PHONE as string | undefined)?.trim()) || '+1 980 265 4229';
 
 // `tel:` href — strips spaces/symbols, keeps leading +.
 export const RETELL_PHONE_HREF = `tel:${RETELL_PHONE.replace(/[^\d+]/g, '')}`;

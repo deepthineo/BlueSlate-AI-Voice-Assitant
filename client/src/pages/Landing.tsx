@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import TryBlueSlate from '../components/TryBlueSlate';
 import RetellCallButton from '../components/RetellCallButton';
+import CallReceptionist from '../components/CallReceptionist';
 
 // Fallback replies if the API is unreachable
 function getFallbackReply(turnCount: number): string {
@@ -603,6 +604,13 @@ function DemoTabs({ autoStart }: { autoStart?: boolean }) {
               </p>
               {/* Free in-browser call to the Retell agent — the path everyone uses */}
               <RetellCallButton />
+              <div className="flex items-center gap-3 w-full max-w-[16rem] mt-1">
+                <div className="h-px flex-1 bg-white/10" />
+                <span className="text-[10px] text-gray-600">OR CALL FROM YOUR PHONE</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+              {/* Real callable Vapi-hosted number — anyone can dial it, AI answers */}
+              <CallReceptionist />
             </>
           </div>
         )}
