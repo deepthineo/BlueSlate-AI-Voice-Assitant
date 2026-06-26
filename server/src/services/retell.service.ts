@@ -397,7 +397,8 @@ export async function finalizeRetellCall(params: {
     .select('id, location_id, org_id, from_number')
     .single();
 
-  if (!call || mapped !== 'completed') return;
+  if (!call) { console.log('[Retell finalize] no call row (upsert failed) for', sid); return; }
+  if (mapped !== 'completed') { console.log(`[Retell finalize] status=${mapped} (not completed) — waiting for completed event`); return; }
 
   // Build transcript from stored turns if Retell didn't supply one.
   let finalTranscript = transcript ?? '';
@@ -414,7 +415,8 @@ export async function finalizeRetellCall(params: {
       await supabase.from('calls').update({ transcript: finalTranscript }).eq('id', call.id);
     }
   }
-  if (!finalTranscript) return;
+  if (!finalTranscript) { console.log('[Retell finalize] no transcript (call_ended before call_analyzed?) — skipping extraction for', sid); return; }
+  console.log(`[Retell finalize] extracting lead for ${sid}, transcript ${finalTranscript.length} chars`);
 
   // ── Loop C: lead extraction (reuses the same logic as Twilio flow) ──
   void (async () => {

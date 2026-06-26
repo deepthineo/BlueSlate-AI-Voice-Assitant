@@ -8,6 +8,10 @@ import routes from './routes';
 
 const app = express();
 
+// Render (and most hosts) sit behind a proxy that sets X-Forwarded-For.
+// Trust one proxy hop so express-rate-limit reads the real client IP correctly.
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 

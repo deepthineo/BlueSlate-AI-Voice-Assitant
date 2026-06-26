@@ -87,6 +87,10 @@ router.post('/webhook', async (req: Request, res: Response) => {
   const event = body.event;
   const call = body.call;
   if (!call?.call_id) return;
+  // Diagnostic: what is Retell actually sending?
+  console.log(`[Retell webhook] event=${event} call=${call.call_id} status=${call.call_status} ` +
+    `transcriptLen=${(call.transcript ?? '').length} dir=${call.direction} ` +
+    `meta.locationId=${call.metadata?.locationId ?? '-'} dyn.locationId=${call.retell_llm_dynamic_variables?.locationId ?? '-'}`);
   if (event !== 'call_ended' && event !== 'call_analyzed') return;
 
   const durationMs =
