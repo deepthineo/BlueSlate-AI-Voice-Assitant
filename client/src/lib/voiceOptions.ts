@@ -48,24 +48,6 @@ export const VOICE_OPTIONS: VoiceOption[] = [
     agentId: (env.VITE_RETELL_AGENT_SAM_EN as string | undefined)?.trim() || '',
     flag: '🇺🇸',
   },
-  {
-    id: 'aria-female-es',
-    name: 'Aria',
-    gender: 'female',
-    language: 'Spanish',
-    langCode: 'es-419',
-    agentId: (env.VITE_RETELL_AGENT_ARIA_ES as string | undefined)?.trim() || '',
-    flag: '🇪🇸',
-  },
-  {
-    id: 'maya-female-hi',
-    name: 'Maya',
-    gender: 'female',
-    language: 'Hindi',
-    langCode: 'hi-IN',
-    agentId: (env.VITE_RETELL_AGENT_MAYA_HI as string | undefined)?.trim() || '',
-    flag: '🇮🇳',
-  },
 ];
 
 export const DEFAULT_VOICE = VOICE_OPTIONS[0];
