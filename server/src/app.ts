@@ -11,8 +11,23 @@ const app = express();
 app.use(helmet());
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
+// Allow the configured client, localhost dev, and ANY of this project's Vercel
+// deployments (preview URLs + blueslate-ai.vercel.app + client-vert-nine-19…).
+const staticAllowed = new Set([
+  env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000',
+]);
 app.use(cors({
-  origin: [env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
+  origin(origin, cb) {
+    // Non-browser requests (curl, server-to-server) have no Origin — allow.
+    if (!origin) return cb(null, true);
+    if (staticAllowed.has(origin)) return cb(null, true);
+    // Any *.vercel.app subdomain belonging to this project.
+    if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return cb(null, true);
+    return cb(null, false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
