@@ -69,6 +69,18 @@ export async function deleteLocation(req: Request, res: Response): Promise<void>
   const { id } = req.params;
   const { orgId } = req.tenant!;
 
+  // calls & leads reference locations WITHOUT on-delete-cascade, so the location
+  // delete is rejected while child rows exist. Remove dependents first.
+  // (call_turns and kb_chunks cascade from calls / knowledge_bases respectively.)
+  try {
+    await supabase.from('leads').delete().eq('location_id', id).eq('org_id', orgId);
+    await supabase.from('calls').delete().eq('location_id', id).eq('org_id', orgId);
+    await supabase.from('knowledge_bases').delete().eq('location_id', id).eq('org_id', orgId);
+  } catch (e) {
+    // Best-effort; continue to the location delete which will surface any real error.
+    console.error('[deleteLocation] dependent cleanup error:', e);
+  }
+
   const { error } = await supabase
     .from('locations')
     .delete()
