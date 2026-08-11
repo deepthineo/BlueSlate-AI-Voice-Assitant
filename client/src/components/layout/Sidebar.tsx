@@ -42,47 +42,45 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="w-64 flex-shrink-0 flex flex-col h-screen"
-      style={{ background: '#0e0e16', borderRight: '1px solid rgba(255,255,255,0.05)' }}
+      className="w-64 flex-shrink-0 flex flex-col h-screen border-r border-neutral-border"
+      style={{ background: '#0F1923' }}
     >
       {/* Gradient glow */}
       <div
         className="absolute top-0 left-0 w-64 h-48 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse 80% 60% at 50% -20%, rgba(124,58,237,0.14) 0%, transparent 100%)', zIndex: 0 }}
+        style={{ background: 'radial-gradient(ellipse 80% 60% at 50% -20%, rgba(14,169,139,0.08) 0%, transparent 100%)', zIndex: 0 }}
       />
 
       {/* Logo */}
-      <div className="relative z-10 px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="relative z-10 px-sm py-4 border-b border-neutral-border/30">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)', boxShadow: '0 0 16px rgba(124,58,237,0.35)' }}>
+          <div className="w-8 h-8 rounded-button flex items-center justify-center flex-shrink-0 bg-brand-teal shadow-teal-glow">
             <Zap className="w-4 h-4 text-white" />
           </div>
           <div>
             <p className="font-bold text-white text-sm tracking-tight">Blueslate</p>
-            <p className="text-xs font-medium" style={{ color: '#a78bfa' }}>AI Revenue OS</p>
+            <p className="text-xs font-medium text-brand-teal">AI Revenue OS</p>
           </div>
         </div>
       </div>
 
-      {/* Custom dark location dropdown */}
+      {/* Custom location dropdown */}
       {currentLocation && locations.length > 0 && (
-        <div className="relative z-20 px-3 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }} ref={dropdownRef}>
+        <div className="relative z-20 px-3 py-2 border-b border-neutral-border/30" ref={dropdownRef}>
           <div className="flex items-center gap-1">
             {/* Trigger */}
             <button
               onClick={() => setDropdownOpen((o) => !o)}
-              className="flex-1 flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-300 transition-colors"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+              className="flex-1 flex items-center justify-between gap-2 rounded-button px-3 py-2 text-xs font-medium text-neutral-ink transition-colors bg-white border border-neutral-border hover:bg-neutral-surface"
             >
               <span className="truncate">{currentLocation.name}</span>
-              <ChevronDown className={`w-3 h-3 flex-shrink-0 text-slate-500 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3 h-3 flex-shrink-0 text-neutral-gray transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Configure → Settings */}
             <NavLink
               to="/settings"
-              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-slate-600 hover:text-brand-400 hover:bg-brand-500/10 transition-colors"
+              className="flex-shrink-0 w-7 h-7 rounded-button flex items-center justify-center text-neutral-gray hover:text-brand-teal hover:bg-brand-teal/10 transition-colors"
               title="Rename / configure in Settings"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -92,15 +90,14 @@ export default function Sidebar() {
           {/* Dropdown list */}
           {dropdownOpen && (
             <div
-              className="absolute left-3 right-3 top-full mt-1 rounded-xl overflow-hidden z-50 shadow-xl"
-              style={{ background: '#1a1a26', border: '1px solid rgba(255,255,255,0.1)' }}
+              className="absolute left-3 right-3 top-full mt-1 rounded-card overflow-hidden z-50 shadow-card bg-white border border-neutral-border"
             >
               {locations.map((loc) => (
                 <button
                   key={loc.id}
                   onClick={() => { setCurrentLocation(loc); setDropdownOpen(false); }}
-                  className="w-full flex items-center justify-between px-3 py-2.5 text-xs text-left transition-colors hover:bg-white/[0.06]"
-                  style={{ color: loc.id === currentLocation.id ? '#a78bfa' : '#94a3b8' }}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-xs text-left transition-colors hover:bg-neutral-surface"
+                  style={{ color: loc.id === currentLocation.id ? '#0EA98B' : '#111827' }}
                 >
                   <span className="truncate">{loc.name}</span>
                   {loc.id === currentLocation.id && <Check className="w-3 h-3 flex-shrink-0" />}
@@ -122,20 +119,19 @@ export default function Sidebar() {
               to={item.to}
               end={item.exact}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 relative select-none',
-                active ? 'text-white' : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                'flex items-center gap-3 px-3 py-2.5 rounded-button text-sm font-medium transition-all duration-150 relative select-none',
+                active ? 'text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
               )}
               style={active ? {
-                background: 'linear-gradient(135deg, rgba(124,58,237,0.2) 0%, rgba(147,51,234,0.09) 100%)',
-                border: '1px solid rgba(139,92,246,0.22)',
-                boxShadow: '0 0 14px rgba(124,58,237,0.1)',
+                background: 'rgba(14,169,139,0.15)',
+                border: '1px solid rgba(14,169,139,0.3)',
+                boxShadow: '0 0 14px rgba(14,169,139,0.1)',
               } : { border: '1px solid transparent' }}
             >
               {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full"
-                  style={{ background: 'linear-gradient(180deg, #7c3aed, #9333ea)' }} />
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-brand-teal" />
               )}
-              <Icon className="w-4 h-4 flex-shrink-0" style={{ color: active ? '#a78bfa' : undefined }} />
+              <Icon className="w-4 h-4 flex-shrink-0" style={{ color: active ? '#0EA98B' : undefined }} />
               <span>{item.label}</span>
             </NavLink>
           );
@@ -143,26 +139,26 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="relative z-10 px-4 py-3 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+      <div className="relative z-10 px-4 py-3 space-y-2 border-t border-neutral-border/30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-teal opacity-60" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-teal" />
             </span>
-            <span className="text-xs text-slate-500">Voice agent active</span>
+            <span className="text-xs text-white/60">Voice agent active</span>
           </div>
           <div className="flex items-center gap-1">
             <NavLink
               to="/settings"
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/[0.06] transition-colors"
+              className="w-7 h-7 rounded-button flex items-center justify-center text-white/60 hover:text-brand-teal hover:bg-white/5 transition-colors"
               title="Settings"
             >
               <Settings className="w-3.5 h-3.5" />
             </NavLink>
             <button
               onClick={() => clerk.signOut()}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/[0.06] transition-colors"
+              className="w-7 h-7 rounded-button flex items-center justify-center text-white/60 hover:text-brand-teal hover:bg-white/5 transition-colors"
               title="Sign out"
             >
               <LogOut className="w-3.5 h-3.5" />

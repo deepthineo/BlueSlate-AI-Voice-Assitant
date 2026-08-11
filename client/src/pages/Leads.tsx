@@ -44,11 +44,8 @@ function OutboundCallModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
-      <div
-        className="w-full max-w-md rounded-3xl p-7 relative"
-        style={{ background: '#0e0e16', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
+      <div className="w-full max-w-md rounded-card-lg p-lg relative bg-white border border-neutral-border shadow-card">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:text-white hover:bg-white/10 transition-all"
@@ -59,17 +56,17 @@ function OutboundCallModal({
         {status === 'idle' && (
           <>
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.25)' }}>
-                <PhoneCall className="w-6 h-6 text-purple-400" />
+              <div className="w-12 h-12 rounded-card flex items-center justify-center bg-brand-teal/10 border border-brand-teal/20">
+                <PhoneCall className="w-6 h-6 text-brand-teal" />
               </div>
               <div>
-                <h3 className="font-bold text-white">Call this lead</h3>
-                <p className="text-sm text-gray-500">AI agent will call on your behalf</p>
+                <h3 className="font-bold text-neutral-ink">Call this lead</h3>
+                <p className="text-sm text-neutral-gray">AI agent will call on your behalf</p>
               </div>
             </div>
 
             <div className="space-y-3 mb-6">
-              <div className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="p-md rounded-card bg-neutral-surface border border-neutral-border">
                 <p className="text-xs text-gray-500 mb-3">Call details</p>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
