@@ -27,10 +27,10 @@ import { useRole } from './hooks/useRole';
 // ── Shared loading screen ────────────────────────────────────────
 function LoadingScreen() {
   return (
-    <div className="flex items-center justify-center h-screen" style={{ background: '#09090d' }}>
+    <div className="flex items-center justify-center h-screen bg-neutral-surface">
       <div className="text-center">
-        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-sm text-gray-500">Loading Blueslate…</p>
+        <div className="w-8 h-8 border-2 border-brand-teal border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-sm text-neutral-gray">Loading Blueslate…</p>
       </div>
     </div>
   );
@@ -40,39 +40,35 @@ function LoadingScreen() {
 // Prevents customers from being sent to franchise onboarding by mistake.
 function PathChooser() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4"
-      style={{ background: '#09090d' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-neutral-surface">
       <div className="flex items-center gap-2.5 mb-10">
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, #7c3aed, #9333ea)' }}>
+        <div className="w-8 h-8 rounded-button flex items-center justify-center bg-brand-teal shadow-teal-glow">
           <Zap className="w-4 h-4 text-white" />
         </div>
-        <span className="font-bold text-white text-lg">Blueslate</span>
+        <span className="font-bold text-neutral-ink text-lg">Blueslate</span>
       </div>
-      <p className="text-gray-400 text-sm mb-8">What brings you here?</p>
+      <p className="text-neutral-gray text-sm mb-8">What brings you here?</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-lg">
         <Link to="/onboarding"
-          className="flex flex-col items-center gap-3 p-7 rounded-2xl text-center transition-all hover:scale-[1.02]"
-          style={{ background: '#0e0e16', border: '1px solid rgba(124,58,237,0.3)' }}>
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-            style={{ background: 'rgba(124,58,237,0.15)' }}>
-            <Building2 className="w-6 h-6 text-purple-400" />
+          className="flex flex-col items-center gap-3 p-lg rounded-card-lg text-center transition-all hover:scale-[1.02] bg-white border border-neutral-border shadow-card"
+          style={{ borderColor: 'rgba(14,169,139,0.3)' }}>
+          <div className="w-12 h-12 rounded-card flex items-center justify-center bg-brand-teal/10">
+            <Building2 className="w-6 h-6 text-brand-teal" />
           </div>
           <div>
-            <p className="font-bold text-white text-sm mb-1">I own a franchise</p>
-            <p className="text-xs text-gray-500">Set up my AI receptionist</p>
+            <p className="font-bold text-neutral-ink text-sm mb-1">I own a franchise</p>
+            <p className="text-xs text-neutral-gray">Set up my AI receptionist</p>
           </div>
         </Link>
         <Link to="/customer"
-          className="flex flex-col items-center gap-3 p-7 rounded-2xl text-center transition-all hover:scale-[1.02]"
-          style={{ background: '#0e0e16', border: '1px solid rgba(16,185,129,0.3)' }}>
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-            style={{ background: 'rgba(16,185,129,0.15)' }}>
-            <Users className="w-6 h-6 text-emerald-400" />
+          className="flex flex-col items-center gap-3 p-lg rounded-card-lg text-center transition-all hover:scale-[1.02] bg-white border border-neutral-border shadow-card"
+          style={{ borderColor: 'rgba(14,169,139,0.3)' }}>
+          <div className="w-12 h-12 rounded-card flex items-center justify-center bg-brand-teal/10">
+            <Users className="w-6 h-6 text-brand-teal" />
           </div>
           <div>
-            <p className="font-bold text-white text-sm mb-1">I'm a customer</p>
-            <p className="text-xs text-gray-500">Ask about a franchise or check my status</p>
+            <p className="font-bold text-neutral-ink text-sm mb-1">I'm a customer</p>
+            <p className="text-xs text-neutral-gray">Ask about a franchise or check my status</p>
           </div>
         </Link>
       </div>
@@ -132,7 +128,7 @@ function AppLayout() {
   if (locations.length === 0) return <PathChooser />;
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#09090d' }}>
+    <div className="flex h-screen overflow-hidden bg-neutral-surface">
       <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <Routes>
